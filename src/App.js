@@ -15,7 +15,7 @@ const sentences = [
 // Caesar cipher encoding function
 const encodeSentence = (sentence) => {
   const shift = Math.floor(Math.random() * 25) + 1; // shift 1-25
-  return sentence
+  const encoded = sentence
     .split("")
     .map((char) => {
       if (/[a-z]/i.test(char)) {
@@ -27,9 +27,12 @@ const encodeSentence = (sentence) => {
       }
     })
     .join("");
+
+  return { encoded, shift };
 };
 
 function App() {
+  const [clue, setClue] = useState("");
   const [selectedSentence, setSelectedSentence] = useState("");
   const [encodedSentence, setEncodedSentence] = useState("");
   const [userInput, setUserInput] = useState("");
@@ -43,13 +46,18 @@ function App() {
 
   const generatePuzzle = () => {
     const sentence = sentences[Math.floor(Math.random() * sentences.length)];
+    const { encoded, shift } = encodeSentence(sentence);
+
     setSelectedSentence(sentence);
-    setEncodedSentence(encodeSentence(sentence));
+    setEncodedSentence(encoded);
+    setClue(`Clue: The shift used is ${shift}.`);
     setUserInput("");
     setMessage("");
+
     const colorIndex = Math.floor(Math.random() * colors.length);
     setBgColor(colors[colorIndex]);
   };
+
 
   useEffect(() => {
     generatePuzzle();
@@ -85,6 +93,9 @@ function App() {
         style={{ padding: "10px", fontSize: "18px", width: "60%", marginTop: "10px" }}
       />
       <br />
+      <p style={{ fontSize: "18px", color: "#333" }}>
+        {clue}
+      </p>
       <button
         onClick={checkAnswer}
         style={{
