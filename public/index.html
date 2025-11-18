@@ -28,45 +28,46 @@
       box-sizing: border-box;
     }
 
-    /* Left + Right Ads overlay (240x480 with margins) */
+    /* Left + Right Ads overlay (240x480) */
     #left-ad,
     #right-ad {
       position: fixed;
       top: 50%;
       transform: translateY(-50%);
+      width: 240px;
+      height: 480px;
       z-index: 999;
       background: #fff;
-      padding: 10px;
-      /* small inner margin */
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     #left-ad {
       left: 20px;
-      /* margin from left edge */
     }
 
     #right-ad {
       right: 20px;
-      /* margin from right edge */
     }
 
     /* Bottom banner overlay (728x90) */
     #bottom-ad {
       position: fixed;
       bottom: 20px;
-      /* margin from bottom edge */
       left: 50%;
       transform: translateX(-50%);
       width: 728px;
       height: 90px;
       text-align: center;
       background: rgba(255, 255, 255, 0.95);
-      padding: 5px;
-      z-index: 999;
       border-radius: 6px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     /* Responsive: hide side ads on smaller screens */
@@ -79,7 +80,6 @@
 
       #bottom-ad {
         width: 90%;
-        /* scale down bottom banner on smaller screens */
       }
     }
   </style>
@@ -94,9 +94,6 @@
     <!-- Leftside -->
     <ins class="adsbygoogle" style="display:inline-block;width:240px;height:480px"
       data-ad-client="ca-pub-5158994576624872" data-ad-slot="8558759286"></ins>
-    <script>
-      (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
   </div>
 
   <!-- Right Ad -->
@@ -106,9 +103,6 @@
     <!-- Rightside -->
     <ins class="adsbygoogle" style="display:inline-block;width:240px;height:480px"
       data-ad-client="ca-pub-5158994576624872" data-ad-slot="6081711709"></ins>
-    <script>
-      (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
   </div>
 
   <!-- Root React App -->
@@ -121,10 +115,12 @@
     <!-- Bottom -->
     <ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px"
       data-ad-client="ca-pub-5158994576624872" data-ad-slot="2568066009"></ins>
-    <script>
-      (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
   </div>
+
+  <!-- Render all ads at once -->
+  <script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
 
 </body>
 
