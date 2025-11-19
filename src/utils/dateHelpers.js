@@ -6,8 +6,19 @@ export const getTodayDate = () => {
 export const isSameDay = (date1, date2) => date1 === date2;
 
 export const buildBirthdayISO = (parts) => {
+  if (!parts) return "";
   const { year, month, day } = parts;
-  if (!year || !month || !day) return "";
-  return `${year}-${month}-${day}`;
+  
+  // Convert to strings and trim
+  const yearStr = String(year || "").trim();
+  const monthStr = String(month || "").trim();
+  const dayStr = String(day || "").trim();
+  
+  // Check for empty strings explicitly
+  if (!yearStr || !monthStr || !dayStr || 
+      yearStr === "" || monthStr === "" || dayStr === "") {
+    return "";
+  }
+  return `${yearStr}-${monthStr}-${dayStr}`;
 };
 

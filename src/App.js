@@ -1,6 +1,6 @@
 // App.jsx
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { getUserData, saveUserData, getProfile, getAccountId, getAllUsersData } from "./utils/storage";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { getUserData, saveUserData, getProfile, getAccountId, getAllUsersData, getAllPublicEntries, toggleLike, hasUserLiked, getLikeCount } from "./utils/storage";
 import { getTodayDate, isSameDay, buildBirthdayISO } from "./utils/dateHelpers";
 import { encodeSentence } from "./utils/cipher";
 import { pollinationsFetch, extractZodiac, normalizeSentence, isConcise } from "./utils/ai";
@@ -57,6 +57,7 @@ function App() {
   const [imageFile, setImageFile] = useState(null);
   const [pendingDeed, setPendingDeed] = useState(null);
   const [editingDeedIndex, setEditingDeedIndex] = useState(null);
+  const hasRestoredPendingDeed = useRef(false);
   const [theme, setTheme] = useState(() => {
     const savedProfile = getProfile();
     return savedProfile?.theme || "dark";
@@ -68,11 +69,6 @@ function App() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactMessage, setContactMessage] = useState("");
-  const [contactError, setContactError] = useState("");
-  const [contactMessageSuccess, setContactMessageSuccess] = useState("");
   const [editingUsername, setEditingUsername] = useState(false);
   const [editingBirthday, setEditingBirthday] = useState(false);
   const [settingsBirthdayParts, setSettingsBirthdayParts] = useState(() => {
@@ -87,6 +83,26 @@ function App() {
     }
     return { month: "", day: "", year: "" };
   });
+  const [communitySort, setCommunitySort] = useState("latest"); // "latest" or "popular"
+  const [likesUpdate, setLikesUpdate] = useState(0); // Force re-render when likes change
+  const [menuOpen, setMenuOpen] = useState(false); // Burger menu state
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [menuOpen]);
 
   const adOffsets = useAdOffsets();
   const yearOptions = useYearOptions();
@@ -130,25 +146,49 @@ function App() {
 
     try {
       const imageDataUrl = await processImageFile(file);
+      
+      // If there's already an image preview, user is changing the image
+      // Subtract upload points immediately if they were awarded
+      if (imagePreview && pendingDeed) {
+        const currentAccountId = getAccountId(profile);
+        const currentUserData = getUserData(currentAccountId);
+        const today = getTodayDate();
+        const todayDeedIndex = currentUserData.pastDeeds.findIndex(d => d.date === today);
+        
+        if (todayDeedIndex !== -1) {
+          const existingDeed = currentUserData.pastDeeds[todayDeedIndex];
+          
+          // If this deed has upload points, remove them immediately
+          if (existingDeed.uploadPoints && existingDeed.uploadPoints > 0) {
+            const pointsToRemove = existingDeed.uploadPoints;
+            const updatedDeeds = [...currentUserData.pastDeeds];
+            updatedDeeds[todayDeedIndex] = {
+              ...existingDeed,
+              uploadPoints: 0,
+              totalPoints: (existingDeed.solvePoints || 0),
+            };
+            
+            const updatedData = {
+              ...currentUserData,
+              points: Math.max(0, currentUserData.points - pointsToRemove),
+              pastDeeds: updatedDeeds,
+            };
+            
+            setUserData(updatedData);
+            saveUserData(currentAccountId, updatedData);
+            setMessage(`⚠️ Photo changed. Upload points (${pointsToRemove}) removed. Submit new photo to earn them back!`);
+          }
+        }
+      }
+      
       setImageFile(file);
       setImagePreview(imageDataUrl);
       setError("");
     } catch (err) {
       setError(err.message);
     }
-  }, []);
+  }, [imagePreview, pendingDeed, profile]);
 
-  const handleContactNameChange = useCallback((e) => {
-    setContactName(e.target.value);
-  }, []);
-
-  const handleContactEmailChange = useCallback((e) => {
-    setContactEmail(e.target.value);
-  }, []);
-
-  const handleContactMessageChange = useCallback((e) => {
-    setContactMessage(e.target.value);
-  }, []);
 
   const handleSignOut = useCallback(() => {
     const resetState = signOut();
@@ -169,9 +209,7 @@ function App() {
     setEncodedSentence(""); // Clear encoded sentence
     setGoodDeed(""); // Clear good deed
     setUserInput(""); // Clear user input
-    // Reload user data for guest account
-    const guestData = getUserData("guest");
-    setUserData(guestData);
+    setUserData({ points: 0, streak: 0, lastDeedDate: null, pastDeeds: [] });
   }, []);
 
   const handleSignInClick = useCallback(() => {
@@ -215,7 +253,13 @@ function App() {
 
   const runPrompt = async (isoBirthday) => {
     if (!isoBirthday) return;
+    
+    // Prevent multiple simultaneous prompts - if already loading or already have a puzzle, don't run
+    if (loading || encodedSentence || goodDeed) {
+      return;
+    }
 
+    // Check daily limit
     const today = getTodayDate();
     if (isSameDay(userData.lastDeedDate, today) && userData.pastDeeds.some(d => d.date === today)) {
       setError("You've already completed today's good deed! Come back tomorrow for a new challenge.");
@@ -262,8 +306,8 @@ function App() {
     }
   };
 
+  // Load user data when profile/account changes (separate effect to avoid loops)
   useEffect(() => {
-    // Load user data when profile/account changes
     const currentAccountId = getAccountId(profile);
     const currentUserData = getUserData(currentAccountId);
     setUserData(currentUserData);
@@ -272,31 +316,72 @@ function App() {
       setTheme(profile.theme || "dark");
       setUsername(profile.username || profile.email?.split("@")[0] || "");
     }
-  }, [profile]);
+  }, [profile, isSignedIn]);
+
+  // Handle pending deed restoration (separate effect)
+  useEffect(() => {
+    const currentAccountId = getAccountId(profile);
+    const currentUserData = getUserData(currentAccountId);
+    
+    // Check if there's a pending deed (today's deed without upload points)
+    // Only restore if we don't already have a puzzle active (prevents infinite loops)
+    if (isSignedIn && !encodedSentence && !goodDeed && !loading && step === 2 && view === "home" && !hasRestoredPendingDeed.current) {
+      const today = getTodayDate();
+      const todayDeed = currentUserData.pastDeeds.find(d => d.date === today);
+      if (todayDeed && (!todayDeed.uploadPoints || todayDeed.uploadPoints === 0)) {
+        // Only restore if we don't already have this set (prevents loops)
+        if (!pendingDeed || pendingDeed.date !== today) {
+          setPendingDeed({
+            deed: todayDeed.deed,
+            solvePoints: todayDeed.solvePoints || 0,
+            streak: todayDeed.streak || 0,
+            date: todayDeed.date,
+          });
+        }
+        if (!showImageUpload) {
+          setShowImageUpload(true);
+        }
+        // Restore encoded sentence and good deed if available
+        if (todayDeed.deed && todayDeed.deed !== goodDeed) {
+          setGoodDeed(todayDeed.deed);
+          // Re-encode if we have the original
+          const encoded = encodeSentence(todayDeed.deed);
+          setEncodedSentence(encoded.encoded);
+          setShift(encoded.shift);
+          setDecodeShift(26 - encoded.shift);
+        }
+        hasRestoredPendingDeed.current = true;
+      } else if (todayDeed && todayDeed.uploadPoints && todayDeed.uploadPoints > 0) {
+        // If photo is already uploaded, clear pending deed state
+        if (pendingDeed) {
+          setPendingDeed(null);
+        }
+        if (showImageUpload) {
+          setShowImageUpload(false);
+        }
+        hasRestoredPendingDeed.current = true;
+      }
+    }
+    
+    // Reset the ref when profile or step changes significantly
+    if (step !== 2 || view !== "home" || !isSignedIn) {
+      hasRestoredPendingDeed.current = false;
+    }
+  }, [profile, step, view, isSignedIn, loading]);
 
   useEffect(() => {
     // Auto-run prompt when signed in (for existing users or after registration)
-    if (isSignedIn && profile && profile.birthday && !loading) {
-      // After successful sign-in (step 0.5) or registration (step 1), run prompt
-      if (step === 0.5 || step === 1) {
+    // Only run once when conditions are met, not repeatedly
+    if (isSignedIn && profile && profile.birthday && !loading && (step === 0.5 || step === 1)) {
+      // Check if we already have a puzzle to avoid re-running
+      if (!encodedSentence && !goodDeed) {
         runPrompt(profile.birthday);
       }
     }
-  }, [isSignedIn, profile, step]);
+  }, [isSignedIn, profile, step, loading, encodedSentence, goodDeed]);
 
   useEffect(() => {
-    // Only check if already completed when signed in
-    if (!isSignedIn) {
-      setDeedCompleted(false);
-      // Clear any "already completed" messages for guests
-      if (message.includes("already completed")) {
-        setMessage("");
-      }
-      if (error.includes("already completed")) {
-        setError("");
-      }
-      return;
-    }
+    if (!isSignedIn || !profile) return;
     
     const today = getTodayDate();
     const currentAccountId = getAccountId(profile);
@@ -429,9 +514,7 @@ function App() {
       setDeedCompleted(false);
       setUsername("");
       setTheme("dark");
-      // Reload user data for guest account
-      const guestData = getUserData("guest");
-      setUserData(guestData);
+      setUserData({ points: 0, streak: 0, lastDeedDate: null, pastDeeds: [] });
       setError("");
     } catch (err) {
       setError(err.message);
@@ -439,12 +522,27 @@ function App() {
   }, [isSignedIn, profile]);
 
   const handleBirthdaySubmit = async (providedBirthday = null) => {
+    if (!isSignedIn || !profile) {
+      setError("Please sign in to continue.");
+      return;
+    }
+    
     const isoBirthday = providedBirthday || buildBirthdayISO(birthdayParts);
-    if (!isoBirthday) {
+    
+    // Check if isoBirthday is valid
+    if (!isoBirthday || String(isoBirthday).trim() === "") {
       setError("Please select a complete birthday.");
       return;
     }
-    await runPrompt(isoBirthday);
+    
+    // Convert to string if it's not already (handles edge cases)
+    const isoBirthdayStr = String(isoBirthday).trim();
+    
+    // Prevent running if already loading or have a puzzle
+    if (loading || encodedSentence || goodDeed) {
+      return;
+    }
+    await runPrompt(isoBirthdayStr);
   };
 
   const checkAnswer = () => {
@@ -463,7 +561,7 @@ function App() {
     }
 
     const newStreak = calculateStreak(currentUserData.lastDeedDate, currentUserData.streak);
-    const solvePoints = calculateSolvePoints(newStreak); // streak + 1 points for solving on consecutive days
+    const solvePoints = calculateSolvePoints(newStreak); // 5 + streak points for solving
 
     // Create deed immediately with solve points and go to journal
     const newDeed = createDeed(
@@ -471,7 +569,7 @@ function App() {
       solvePoints,
       0, // No upload points yet
       newStreak,
-      null // No image required
+      null // No image yet
     );
 
     const updatedData = {
@@ -485,10 +583,19 @@ function App() {
     setUserData(updatedData);
     saveUserData(currentAccountId, updatedData);
     setDeedCompleted(true);
-    setMessage(`✅ Correct! +${solvePoints} points!`);
     
-    // Navigate to journal
-    setView("journal");
+    // Set pending deed so user can upload photo and get more points
+    setPendingDeed({
+      deed: goodDeed,
+      solvePoints: solvePoints,
+      streak: newStreak,
+      date: getTodayDate(),
+    });
+    
+    setMessage(`✅ Correct! +${solvePoints} points! Upload a photo to earn ${calculateUploadPoints(newStreak)} more points!`);
+    
+    // Show image upload option on experience page instead of navigating away
+    setShowImageUpload(true);
   };
 
   const handleImageSubmit = () => {
@@ -499,32 +606,103 @@ function App() {
 
     const currentAccountId = getAccountId(profile);
     const currentUserData = getUserData(currentAccountId);
-    const uploadPoints = calculateUploadPoints(pendingDeed.streak); // streak + 1 points for uploading on consecutive days
+    const uploadPoints = calculateUploadPoints(pendingDeed.streak); // 5 + streak points for uploading
 
-    const newDeed = createDeed(
-      pendingDeed.deed,
-      pendingDeed.solvePoints,
-      uploadPoints,
-      pendingDeed.streak,
-      imagePreview
-    );
+    // Find today's deed in pastDeeds and update it
+    const today = getTodayDate();
+    const updatedDeeds = [...currentUserData.pastDeeds];
+    const todayDeedIndex = updatedDeeds.findIndex(d => d.date === today);
+    
+    if (todayDeedIndex !== -1) {
+      // Check if upload points were already awarded
+      const existingDeed = updatedDeeds[todayDeedIndex];
+      const alreadyHasUploadPoints = existingDeed.uploadPoints && existingDeed.uploadPoints > 0;
+      
+      if (!alreadyHasUploadPoints) {
+        // Update existing deed with image and upload points
+        updatedDeeds[todayDeedIndex] = {
+          ...updatedDeeds[todayDeedIndex],
+          image: imagePreview,
+          uploadPoints: uploadPoints,
+          totalPoints: (existingDeed.solvePoints || pendingDeed.solvePoints) + uploadPoints,
+        };
+        
+        // Add upload points to total
+        const updatedData = {
+          ...currentUserData,
+          points: currentUserData.points + uploadPoints,
+          streak: pendingDeed.streak,
+          lastDeedDate: pendingDeed.date,
+          pastDeeds: updatedDeeds.slice(0, 100),
+        };
 
-    const updatedData = {
-      ...currentUserData,
-      points: currentUserData.points + uploadPoints, // Only add upload points since solve points were already added
-      streak: pendingDeed.streak,
-      lastDeedDate: pendingDeed.date,
-      pastDeeds: [newDeed, ...currentUserData.pastDeeds].slice(0, 100),
-    };
+        setUserData(updatedData);
+        saveUserData(currentAccountId, updatedData);
+        
+        setMessage(`✅ Photo uploaded! +${uploadPoints} more points! Total: ${(existingDeed.solvePoints || pendingDeed.solvePoints) + uploadPoints} points!`);
+        
+        // Clear pending deed since photo is now uploaded
+        setPendingDeed(null);
+        setShowImageUpload(false);
+      } else {
+        // Changing an existing photo - points were already removed in handleImageChange
+        // Now add points back for the new image
+        updatedDeeds[todayDeedIndex] = {
+          ...updatedDeeds[todayDeedIndex],
+          image: imagePreview,
+          uploadPoints: uploadPoints, // Add points back for new image
+          totalPoints: (existingDeed.solvePoints || pendingDeed.solvePoints) + uploadPoints,
+        };
+        
+        // Add upload points back to total
+        const updatedData = {
+          ...currentUserData,
+          points: currentUserData.points + uploadPoints,
+          pastDeeds: updatedDeeds.slice(0, 100),
+        };
+        setUserData(updatedData);
+        saveUserData(currentAccountId, updatedData);
+        setMessage(`✅ Photo updated! +${uploadPoints} points added back! Total: ${(existingDeed.solvePoints || pendingDeed.solvePoints) + uploadPoints} points!`);
+        
+        // Clear pending deed since photo is now uploaded
+        setPendingDeed(null);
+        setShowImageUpload(false);
+      }
+    } else {
+      // Create new deed if somehow it doesn't exist
+      const newDeed = createDeed(
+        pendingDeed.deed,
+        pendingDeed.solvePoints,
+        uploadPoints,
+        pendingDeed.streak,
+        imagePreview
+      );
+      const updatedData = {
+        ...currentUserData,
+        points: currentUserData.points + uploadPoints,
+        streak: pendingDeed.streak,
+        lastDeedDate: pendingDeed.date,
+        pastDeeds: [newDeed, ...updatedDeeds].slice(0, 100),
+      };
+      setUserData(updatedData);
+      saveUserData(currentAccountId, updatedData);
+      
+      setMessage(`✅ Deed completed! +${uploadPoints} more points! Total: ${pendingDeed.solvePoints + uploadPoints} points!`);
+    }
 
-    setUserData(updatedData);
-    saveUserData(currentAccountId, updatedData);
     setDeedCompleted(true);
     setShowImageUpload(false);
     setImagePreview(null);
     setImageFile(null);
     setPendingDeed(null);
-    setMessage(`✅ Deed completed! +${uploadPoints} more points! Total: ${pendingDeed.solvePoints + uploadPoints} points! Streak: ${pendingDeed.streak} day${pendingDeed.streak !== 1 ? 's' : ''}`);
+    
+    // Navigate to journal after a short delay (only for signed-in users)
+    if (isSignedIn) {
+      setTimeout(() => {
+        setView("journal");
+        setMessage(""); // Clear message when navigating
+      }, 2000);
+    }
   };
 
   const availableWidth = useMemo(
@@ -629,12 +807,12 @@ function App() {
     const cardBg = getCardBg(theme);
     const cardBorder = getCardBorder(theme);
     
-    const progressValue = (step === 0.5 || step === 1 || step === 1.5) ? 45 : 95;
+    const progressValue = (step === 0.5 || step === 1) ? 45 : 95;
     const experienceCopy =
-      (step === 0.5 || step === 1 || step === 1.5)
-        ? step === 0.5
-          ? "Sign in to access your personalized daily good deeds."
-          : "We'll read your birth date, ask a free AI for the correct zodiac, and craft a deed tailored to your energy."
+      step === 0.5
+        ? "Sign in to access your personalized daily good deeds."
+        : step === 1
+        ? "We'll read your birth date, ask a free AI for the correct zodiac, and craft a deed tailored to your energy."
         : "Decrypt the prompt, follow the hint, and confirm the decoded text to log today's good deed.";
 
     return (
@@ -642,13 +820,13 @@ function App() {
         <div style={{ maxWidth: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <span style={chipStyle(theme)}>
-              {step === 0.5 ? "Sign In" : (step === 1 || step === 1.5) ? "Step 1 / 2" : "Step 2 / 2"}
+              {step === 0.5 ? "Sign In" : step === 1 ? "Step 1 / 2" : "Step 2 / 2"}
             </span>
             <span style={chipStyle(theme)}>Daily ritual</span>
             <span style={chipStyle(theme)}>Zodiac fused</span>
           </div>
           <p style={{ margin: 0, fontSize: "13px", color: textColorSecondary }}>
-            {(step === 0.5 || step === 1 || step === 1.5) ? (step === 0.5 ? "Sign In" : "Input → AI prompts") : "Cipher → Decode check"}
+            {(step === 0.5 || step === 1) ? (step === 0.5 ? "Sign In" : "Input → AI prompts") : "Cipher → Decode check"}
           </p>
         </div>
 
@@ -668,32 +846,18 @@ function App() {
               <button onClick={handleSignIn} disabled={loading} style={{ ...buttonStyle(loading), width: "100%" }}>
                 {loading ? "Signing in..." : "Sign In"}
               </button>
-              <div style={{ display: "flex", gap: "12px", width: "100%" }}>
-                <button
-                  onClick={() => setStep(1)}
-                  disabled={loading}
-                  style={{ 
-                    ...buttonStyle(loading), 
-                    flex: 1, 
-                    background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)", 
-                    border: theme === "light" ? "1px solid #cbd5e0" : "1px solid rgba(255,255,255,0.2)" 
-                  }}
-                >
-                  Register
-                </button>
-                <button
-                  onClick={() => setStep(1.5)}
-                  disabled={loading}
-                  style={{ 
-                    ...buttonStyle(loading), 
-                    flex: 1, 
-                    background: theme === "light" ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)", 
-                    border: theme === "light" ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.1)" 
-                  }}
-                >
-                  Guest
-                </button>
-              </div>
+              <button
+                onClick={() => setStep(1)}
+                disabled={loading}
+                style={{ 
+                  ...buttonStyle(loading), 
+                  width: "100%",
+                  background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)", 
+                  border: theme === "light" ? "1px solid #cbd5e0" : "1px solid rgba(255,255,255,0.2)" 
+                }}
+              >
+                Register
+              </button>
             </div>
             {error && <p style={{ color: "#ff8a8a", marginTop: "20px" }}>{error}</p>}
           </>
@@ -714,58 +878,34 @@ function App() {
               theme={theme}
             />
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", marginTop: "24px" }}>
-              <button onClick={handleSignIn} disabled={loading} style={{ ...buttonStyle(loading), width: "100%" }}>
-                {loading ? "Signing in..." : "Sign In"}
+              <button
+                onClick={handleProfileSubmit}
+                disabled={loading}
+                style={{ 
+                  ...buttonStyle(loading), 
+                  width: "100%",
+                  background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)", 
+                  border: theme === "light" ? "1px solid #cbd5e0" : "1px solid rgba(255,255,255,0.2)" 
+                }}
+              >
+                {loading ? "Creating..." : "Sign Up"}
               </button>
-              <div style={{ display: "flex", gap: "12px", width: "100%" }}>
-        <button
-                  onClick={handleProfileSubmit}
-                  disabled={loading}
-                  style={{ 
-                    ...buttonStyle(loading), 
-                    flex: 1, 
-                    background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)", 
-                    border: theme === "light" ? "1px solid #cbd5e0" : "1px solid rgba(255,255,255,0.2)" 
-                  }}
-                >
-                  {loading ? "Creating..." : "Sign Up"}
-                </button>
-                <button
-                  onClick={() => setStep(1.5)}
-                  disabled={loading}
-                  style={{ 
-                    ...buttonStyle(loading), 
-                    flex: 1, 
-                    background: theme === "light" ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)", 
-                    border: theme === "light" ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.1)" 
-                  }}
-        >
-                  Guest
-        </button>
-      </div>
+              <button
+                onClick={handleSignIn}
+                disabled={loading}
+                style={{ 
+                  ...buttonStyle(loading), 
+                  width: "100%",
+                  background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)", 
+                  border: theme === "light" ? "1px solid #cbd5e0" : "1px solid rgba(255,255,255,0.2)" 
+                }}
+              >
+                Sign In
+              </button>
             </div>
             {error && <p style={{ color: "#ff8a8a", marginTop: "20px" }}>{error}</p>}
           </>
-        ) : !isSignedIn && step === 1.5 ? (
-          <>
-            <h1 style={{ margin: "12px 0 8px", fontSize: "34px", color: textColor }}>Enter Your Birthday</h1>
-            <p style={{ color: textColor, marginBottom: "28px" }}>
-              We'll discover your zodiac nature and craft a deed that fits your aura.
-            </p>
-            <BirthdayInput
-              birthdayParts={birthdayParts}
-              updateBirthdayParts={updateBirthdayParts}
-              monthOptions={monthOptions}
-              dayOptions={dayOptions}
-              yearOptions={yearOptions}
-              theme={theme}
-            />
-            <button onClick={handleBirthdaySubmit} disabled={loading} style={buttonStyle(loading)}>
-              {loading ? "Consulting the stars..." : "Reveal today's quest"}
-            </button>
-            {error && <p style={{ color: "#ff8a8a", marginTop: "20px" }}>{error}</p>}
-          </>
-        ) : step === 2 ? (
+        ) : step === 2 && encodedSentence && goodDeed ? (
           <>
             <h1 style={{ margin: "12px 0 8px", fontSize: "34px", color: textColor }}>Uncover Your Good Deed</h1>
             <p style={{ fontSize: "18px", color: textColorSecondary, marginBottom: "16px" }}>{experienceCopy}</p>
@@ -780,7 +920,7 @@ function App() {
               wordBreak: "break-word" 
             }}>
               {encodedSentence}
-            </div>
+      </div>
             <p style={{ fontSize: "16px", color: textColorSecondary }}>
               Hint: Rotate letters {decodeShift} steps forward to reveal the truth.
             </p>
@@ -789,6 +929,66 @@ function App() {
             {message && (
               <div style={{ marginTop: "24px", fontSize: "18px", color: message.includes("Correct") ? "#7af5c3" : "#ff8a8a" }}>
                 {message}
+              </div>
+            )}
+            {showImageUpload && pendingDeed && (
+              <div style={{ marginTop: "32px", padding: "24px", borderRadius: "16px", background: theme === "light" ? "#edf2f7" : "rgba(255,255,255,0.04)", border: theme === "light" ? `1px solid ${cardBorder}` : "1px solid rgba(255,255,255,0.08)" }}>
+                <p style={{ fontSize: "16px", color: textColor, marginBottom: "16px", fontWeight: 600 }}>
+                  📸 Upload a photo to earn {calculateUploadPoints(pendingDeed.streak)} more points!
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={{ display: "none" }}
+                  id="experience-image-upload"
+                />
+                <label
+                  htmlFor="experience-image-upload"
+                  style={{
+                    display: "block",
+                    padding: "16px",
+                    borderRadius: "12px",
+                    background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
+                    border: theme === "light" ? `2px dashed ${cardBorder}` : "2px dashed rgba(255,255,255,0.2)",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    color: textColor,
+                    fontSize: "14px",
+                    marginBottom: imagePreview ? "16px" : "0",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = theme === "light" ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)";
+                  }}
+                >
+                  {imagePreview ? "Change Image" : "Choose Image"}
+                </label>
+                {imagePreview && (
+                  <div style={{ marginTop: "16px", marginBottom: "16px", textAlign: "center" }}>
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "300px",
+                        borderRadius: "12px",
+                        border: theme === "light" ? `1px solid ${cardBorder}` : "1px solid rgba(255,255,255,0.2)",
+                      }}
+                    />
+                  </div>
+                )}
+                {imagePreview && (
+                  <button
+                    onClick={handleImageSubmit}
+                    style={{ ...buttonStyle(false), width: "100%" }}
+                  >
+                    Complete Good Deed (+{calculateUploadPoints(pendingDeed.streak)} pts)
+                  </button>
+                )}
               </div>
             )}
           </>
@@ -960,13 +1160,64 @@ function App() {
                                 const currentAccountId = getAccountId(profile);
                                 const currentUserData = getUserData(currentAccountId);
                                 const updatedDeeds = [...currentUserData.pastDeeds];
-                                updatedDeeds[idx] = { ...updatedDeeds[idx], image: imageDataUrl };
-                                const updatedData = {
-                                  ...currentUserData,
-                                  pastDeeds: updatedDeeds,
-                                };
-                                setUserData(updatedData);
-                                saveUserData(currentAccountId, updatedData);
+                                const today = getTodayDate();
+                                const isTodayDeed = deed.date === today;
+                                const hasNoUploadPoints = !deed.uploadPoints || deed.uploadPoints === 0;
+                                
+                                // If changing an existing image, points were already removed when Change button was clicked
+                                // Now add points back for the new image
+                                if (isTodayDeed && (!deed.uploadPoints || deed.uploadPoints === 0)) {
+                                  // Points were removed when Change was clicked, now add them back
+                                  const uploadPoints = calculateUploadPoints(deed.streak);
+                                  updatedDeeds[idx] = { 
+                                    ...updatedDeeds[idx], 
+                                    image: imageDataUrl,
+                                    uploadPoints: uploadPoints,
+                                    totalPoints: (deed.solvePoints || 0) + uploadPoints,
+                                  };
+                                  
+                                  const updatedData = {
+                                    ...currentUserData,
+                                    points: currentUserData.points + uploadPoints,
+                                    pastDeeds: updatedDeeds,
+                                  };
+                                  setUserData(updatedData);
+                                  saveUserData(currentAccountId, updatedData);
+                                  setMessage(`✅ Photo updated! +${uploadPoints} points added back!`);
+                                  setTimeout(() => setMessage(""), 5000);
+                                  setEditingDeedIndex(null);
+                                  return;
+                                }
+                                
+                                // If this is today's deed and doesn't have upload points yet, award them
+                                if (isTodayDeed && hasNoUploadPoints) {
+                                  const uploadPoints = calculateUploadPoints(deed.streak);
+                                  updatedDeeds[idx] = { 
+                                    ...updatedDeeds[idx], 
+                                    image: imageDataUrl,
+                                    uploadPoints: uploadPoints,
+                                    totalPoints: (deed.solvePoints || 0) + uploadPoints,
+                                  };
+                                  
+                                  const updatedData = {
+                                    ...currentUserData,
+                                    points: currentUserData.points + uploadPoints,
+                                    pastDeeds: updatedDeeds,
+                                  };
+                                  setUserData(updatedData);
+                                  saveUserData(currentAccountId, updatedData);
+                                  setMessage(`✅ Photo uploaded! +${uploadPoints} more points!`);
+                                  setTimeout(() => setMessage(""), 5000);
+                                } else {
+                                  // For past deeds or deeds without upload points, just update image
+                                  updatedDeeds[idx] = { ...updatedDeeds[idx], image: imageDataUrl };
+                                  const updatedData = {
+                                    ...currentUserData,
+                                    pastDeeds: updatedDeeds,
+                                  };
+                                  setUserData(updatedData);
+                                  saveUserData(currentAccountId, updatedData);
+                                }
                                 setEditingDeedIndex(null);
                               } catch (err) {
                                 setError(err.message);
@@ -1023,7 +1274,36 @@ function App() {
                               }}
                             />
                             <button
-                              onClick={() => setEditingDeedIndex(idx)}
+                              onClick={() => {
+                                // Subtract upload points immediately when clicking Change button
+                                const currentAccountId = getAccountId(profile);
+                                const currentUserData = getUserData(currentAccountId);
+                                const today = getTodayDate();
+                                const isTodayDeed = deed.date === today;
+                                
+                                if (isTodayDeed && deed.uploadPoints && deed.uploadPoints > 0) {
+                                  const pointsToRemove = deed.uploadPoints;
+                                  const updatedDeeds = [...currentUserData.pastDeeds];
+                                  updatedDeeds[idx] = {
+                                    ...deed,
+                                    uploadPoints: 0,
+                                    totalPoints: (deed.solvePoints || 0),
+                                  };
+                                  
+                                  const updatedData = {
+                                    ...currentUserData,
+                                    points: Math.max(0, currentUserData.points - pointsToRemove),
+                                    pastDeeds: updatedDeeds,
+                                  };
+                                  
+                                  setUserData(updatedData);
+                                  saveUserData(currentAccountId, updatedData);
+                                  setMessage(`⚠️ Photo changed. Upload points (${pointsToRemove}) removed. Select new photo to earn them back!`);
+                                  setTimeout(() => setMessage(""), 5000);
+                                }
+                                
+                                setEditingDeedIndex(idx);
+                              }}
                               style={{
                                 position: "absolute",
                                 top: "8px",
@@ -1053,13 +1333,39 @@ function App() {
                                     const currentAccountId = getAccountId(profile);
                                     const currentUserData = getUserData(currentAccountId);
                                     const updatedDeeds = [...currentUserData.pastDeeds];
-                                    updatedDeeds[idx] = { ...updatedDeeds[idx], image: imageDataUrl };
-                                    const updatedData = {
-                                      ...currentUserData,
-                                      pastDeeds: updatedDeeds,
-                                    };
-                                    setUserData(updatedData);
-                                    saveUserData(currentAccountId, updatedData);
+                                    const today = getTodayDate();
+                                    const isTodayDeed = deed.date === today;
+                                    const hasNoUploadPoints = !deed.uploadPoints || deed.uploadPoints === 0;
+                                    
+                                    // If this is today's deed and doesn't have upload points yet, award them
+                                    if (isTodayDeed && hasNoUploadPoints) {
+                                      const uploadPoints = calculateUploadPoints(deed.streak);
+                                      updatedDeeds[idx] = { 
+                                        ...updatedDeeds[idx], 
+                                        image: imageDataUrl,
+                                        uploadPoints: uploadPoints,
+                                        totalPoints: (deed.solvePoints || 0) + uploadPoints,
+                                      };
+                                      
+                                      const updatedData = {
+                                        ...currentUserData,
+                                        points: currentUserData.points + uploadPoints,
+                                        pastDeeds: updatedDeeds,
+                                      };
+                                      setUserData(updatedData);
+                                      saveUserData(currentAccountId, updatedData);
+                                      setMessage(`✅ Photo uploaded! +${uploadPoints} more points!`);
+                                      setTimeout(() => setMessage(""), 5000);
+                                    } else {
+                                      // Just add the image without points
+                                      updatedDeeds[idx] = { ...updatedDeeds[idx], image: imageDataUrl };
+                                      const updatedData = {
+                                        ...currentUserData,
+                                        pastDeeds: updatedDeeds,
+                                      };
+                                      setUserData(updatedData);
+                                      saveUserData(currentAccountId, updatedData);
+                                    }
                                   } catch (err) {
                                     setError(err.message);
                                   }
@@ -1081,7 +1387,9 @@ function App() {
                                 color: textColor,
                               }}
                             >
-                              Upload Image
+                              {deed.date === getTodayDate() && (!deed.uploadPoints || deed.uploadPoints === 0) 
+                                ? `Upload Image (+${calculateUploadPoints(deed.streak)} pts)` 
+                                : "Upload Image"}
                             </label>
                           </div>
                         )}
@@ -1445,6 +1753,209 @@ function App() {
     );
   };
 
+  const renderCommunity = () => {
+    const textColor = getTextColor(theme, "primary");
+    const textColorSecondary = getTextColor(theme, "secondary");
+    const cardBg = getCardBg(theme);
+    const cardBorder = getCardBorder(theme);
+    const currentAccountId = getAccountId(profile);
+    
+    // Get all public entries
+    let entries = getAllPublicEntries();
+    
+    // Add like counts and liked status
+    // Reference likesUpdate to trigger re-render when likes change
+    const _ = likesUpdate;
+    entries = entries.map(entry => ({
+      ...entry,
+      likeCount: getLikeCount(entry.entryId),
+      isLiked: currentAccountId ? hasUserLiked(entry.entryId, currentAccountId) : false,
+    }));
+    
+    // Sort entries
+    if (communitySort === "popular") {
+      entries.sort((a, b) => b.likeCount - a.likeCount || new Date(b.date) - new Date(a.date));
+    } else {
+      // Latest first
+      entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+    
+    const handleLike = (entryId) => {
+      if (!currentAccountId) {
+        setMessage("Please sign in to like entries");
+        setTimeout(() => setMessage(""), 3000);
+        return;
+      }
+      
+      toggleLike(entryId, currentAccountId);
+      // Force re-render by updating likes counter
+      setLikesUpdate(prev => prev + 1);
+    };
+    
+    const formatDate = (dateStr) => {
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      } catch {
+        return dateStr;
+      }
+    };
+    
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+        <CardFrame theme={theme}>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", color: textColorSecondary }}>Community</p>
+            <h2 style={{ fontSize: "30px", margin: "10px 0", color: textColor }}>Explore Good Deeds</h2>
+            <p style={{ color: textColorSecondary, marginTop: "8px" }}>See what others are doing and spread positivity!</p>
+            
+            {/* Sort dropdown */}
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+              <div style={{ position: "relative" }}>
+                <select
+                  value={communitySort}
+                  onChange={(e) => setCommunitySort(e.target.value)}
+                  data-theme={theme}
+                  style={{
+                    padding: "10px 40px 10px 16px",
+                    borderRadius: "999px",
+                    border: theme === "light" 
+                      ? "1px solid #cbd5e0" 
+                      : "1px solid rgba(255,255,255,0.2)",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: textColor,
+                    background: theme === "light" 
+                      ? "#ffffff" 
+                      : "rgba(255,255,255,0.05)",
+                    cursor: "pointer",
+                    appearance: "none",
+                    WebkitAppearance: "none",
+                    MozAppearance: "none",
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='${theme === "light" ? "%234a5568" : "%23f0f4ff"}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 12px center",
+                    paddingRight: "40px",
+                  }}
+                >
+                  <option value="latest" style={{ 
+                    background: theme === "light" ? "#ffffff" : "#1a1c24",
+                    color: theme === "light" ? "#1a202c" : "#f7f8fb"
+                  }}>Latest</option>
+                  <option value="popular" style={{ 
+                    background: theme === "light" ? "#ffffff" : "#1a1c24",
+                    color: theme === "light" ? "#1a202c" : "#f7f8fb"
+                  }}>Most Popular</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </CardFrame>
+        
+        {entries.length === 0 ? (
+          <CardFrame theme={theme}>
+            <div style={{ textAlign: "center", padding: "40px 20px" }}>
+              <p style={{ color: textColorSecondary, fontSize: "16px" }}>
+                No community entries yet. Be the first to share your good deed!
+              </p>
+            </div>
+          </CardFrame>
+        ) : (
+          entries.map((entry) => (
+            <CardFrame key={entry.entryId} theme={theme}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {/* User info and date */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: textColor }}>
+                      {entry.email === currentAccountId ? "You" : entry.username}
+                    </p>
+                    <p style={{ margin: "2px 0 0", fontSize: "11px", color: textColorSecondary }}>
+                      {formatDate(entry.date)}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "11px", color: textColorSecondary }}>
+                      {entry.streak} 🔥
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Good deed text */}
+                <div style={{
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  background: theme === "light" ? "#edf2f7" : "rgba(0,0,0,0.25)",
+                  border: theme === "light" ? `1px solid ${cardBorder}` : "1px solid rgba(255,255,255,0.08)",
+                }}>
+                  <p style={{ margin: 0, fontSize: "13px", color: textColor, lineHeight: 1.5 }}>
+                    {entry.deed}
+                  </p>
+                </div>
+                
+                {/* Image */}
+                {entry.image && (
+                  <div style={{ position: "relative", width: "100%", borderRadius: "8px", overflow: "hidden" }}>
+                    <img
+                      src={entry.image}
+                      alt="Good deed"
+                      style={{
+                        width: "100%",
+                        maxHeight: "250px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                        border: theme === "light" ? `1px solid ${cardBorder}` : "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {/* Like button and count */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <button
+                    onClick={() => handleLike(entry.entryId)}
+                    disabled={!currentAccountId}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "6px 12px",
+                      borderRadius: "999px",
+                      border: "none",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      color: entry.isLiked 
+                        ? (theme === "light" ? "#dc2626" : "#ff6b9d")
+                        : (theme === "light" ? "#4a5568" : "#f0f4ff"),
+                      background: entry.isLiked
+                        ? (theme === "light" 
+                            ? "rgba(220, 38, 38, 0.1)" 
+                            : "rgba(255, 107, 157, 0.15)")
+                        : (theme === "light" 
+                            ? "rgba(0,0,0,0.05)" 
+                            : "rgba(255,255,255,0.05)"),
+                      cursor: currentAccountId ? "pointer" : "not-allowed",
+                      transition: "all 0.2s ease",
+                      opacity: currentAccountId ? 1 : 0.6,
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>{entry.isLiked ? "❤️" : "🤍"}</span>
+                    <span>{entry.likeCount}</span>
+                  </button>
+                  {!currentAccountId && (
+                    <span style={{ fontSize: "11px", color: textColorSecondary }}>
+                      Sign in to like
+                    </span>
+                  )}
+                </div>
+              </div>
+            </CardFrame>
+          ))
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={pageStyle}>
       {decorOrbs.map((orb) => (
@@ -1492,201 +2003,222 @@ function App() {
               <h1 style={{ margin: 0, fontSize: "20px", color: getTextColor(theme, "primary") }}>Zodiac Cipher</h1>
             </div>
           </div>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <button style={navButtonStyle(view === "home", theme)} onClick={() => setView("home")}>Experience</button>
-            <button style={navButtonStyle(view === "journal", theme)} onClick={() => setView("journal")}>Journal</button>
-            <button style={navButtonStyle(view === "about", theme)} onClick={() => setView("about")}>About</button>
-            {isSignedIn && (
-              <button style={navButtonStyle(view === "settings", theme)} onClick={() => setView("settings")}>Settings</button>
-            )}
-            {isSignedIn ? (
-              <button
-                onClick={handleSignOut}
-                style={{
-                  ...navButtonStyle(false, theme),
-                  background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
-                  border: theme === "light" ? "1px solid #cbd5e0" : "1px solid rgba(255,255,255,0.2)",
-                  fontSize: "13px",
-                  padding: "8px 16px",
-                }}
-              >
-                Sign Out
-              </button>
-            ) : (
-              <button
-                onClick={handleSignInClick}
-                style={{
-                  ...navButtonStyle(false, theme),
-                  background: "linear-gradient(135deg, #ff6bc5, #7076ff)",
-                  border: "none",
-                  fontSize: "13px",
-                  padding: "8px 16px",
-                }}
-              >
-                Sign In / Register
-              </button>
+          <div ref={menuRef} style={{ display: "flex", gap: "12px", alignItems: "center", position: "relative" }}>
+            {/* Burger menu button */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+                padding: "8px",
+                borderRadius: "8px",
+                border: "none",
+                background: theme === "light" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
+                cursor: "pointer",
+                width: "36px",
+                height: "36px",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <div style={{
+                width: "20px",
+                height: "2px",
+                background: getTextColor(theme, "primary"),
+                transition: "all 0.3s ease",
+                transform: menuOpen ? "rotate(45deg) translate(5px, 5px)" : "none",
+              }} />
+              <div style={{
+                width: "20px",
+                height: "2px",
+                background: getTextColor(theme, "primary"),
+                transition: "all 0.3s ease",
+                opacity: menuOpen ? 0 : 1,
+              }} />
+              <div style={{
+                width: "20px",
+                height: "2px",
+                background: getTextColor(theme, "primary"),
+                transition: "all 0.3s ease",
+                transform: menuOpen ? "rotate(-45deg) translate(5px, -5px)" : "none",
+              }} />
+            </button>
+            
+            {/* Dropdown menu */}
+            {menuOpen && (
+              <div style={{
+                position: "absolute",
+                top: "calc(100% + 12px)",
+                right: 0,
+                minWidth: "200px",
+                borderRadius: "16px",
+                background: theme === "light" 
+                  ? "linear-gradient(135deg, #ffffff 0%, #f7fafc 100%)" 
+                  : "rgba(4, 6, 18, 0.95)",
+                border: theme === "light" 
+                  ? "1px solid #e2e8f0" 
+                  : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: theme === "light" 
+                  ? "0 20px 60px rgba(0,0,0,0.08)" 
+                  : "0 20px 60px rgba(0,0,0,0.45)",
+                backdropFilter: "blur(16px)",
+                zIndex: 1000,
+                padding: "8px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+              }}>
+                <button 
+                  style={{
+                    ...navButtonStyle(view === "home", theme),
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                  }}
+                  onClick={() => {
+                    setView("home");
+                    setMenuOpen(false);
+                  }}
+                >
+                  Experience
+                </button>
+                <button 
+                  style={{
+                    ...navButtonStyle(view === "journal", theme),
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                  }}
+                  onClick={() => {
+                    setView("journal");
+                    setMenuOpen(false);
+                  }}
+                >
+                  Journal
+                </button>
+                <button 
+                  style={{
+                    ...navButtonStyle(view === "community", theme),
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                  }}
+                  onClick={() => {
+                    setView("community");
+                    setMenuOpen(false);
+                  }}
+                >
+                  Community
+                </button>
+                <button 
+                  style={{
+                    ...navButtonStyle(view === "about", theme),
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                  }}
+                  onClick={() => {
+                    setView("about");
+                    setMenuOpen(false);
+                  }}
+                >
+                  About
+                </button>
+                {isSignedIn && (
+                  <button 
+                    style={{
+                      ...navButtonStyle(view === "settings", theme),
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      borderRadius: "12px",
+                    }}
+                    onClick={() => {
+                      setView("settings");
+                      setMenuOpen(false);
+                    }}
+                  >
+                    Settings
+                  </button>
+                )}
+                <div style={{
+                  height: "1px",
+                  background: theme === "light" ? "#e2e8f0" : "rgba(255,255,255,0.1)",
+                  margin: "4px 0",
+                }} />
+                {isSignedIn ? (
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setMenuOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      borderRadius: "12px",
+                      border: "none",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: theme === "light" ? "#dc2626" : "#ff6b9d",
+                      background: theme === "light" ? "rgba(220, 38, 38, 0.1)" : "rgba(255, 107, 157, 0.15)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      handleSignInClick();
+                      setMenuOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      borderRadius: "12px",
+                      border: "none",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      background: "linear-gradient(135deg, #ff6bc5, #7076ff)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Sign In / Register
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </header>
 
         <main>
-          {view === "home" ? renderExperience() : view === "journal" ? renderJournal() : view === "settings" ? renderSettings() : renderAbout()}
+          {view === "home" ? renderExperience() : view === "journal" ? renderJournal() : view === "community" ? renderCommunity() : view === "settings" ? renderSettings() : renderAbout()}
         </main>
 
         <footer style={{ ...footerStyle, background: theme === "dark" ? "#272a33" : "linear-gradient(135deg, #ffffff 0%, #f7fafc 100%)", border: theme === "dark" ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0" }}>
           <div>
-            <h3 style={{ marginTop: 0, fontSize: "16px", color: getTextColor(theme, "primary") }}>Contact Support</h3>
-            <p style={{ color: getTextColor(theme, "secondary"), fontSize: "14px", marginTop: "8px" }}>
-              Have a question or need help? Send us a message!
-            </p>
-            <div style={{ marginTop: "16px" }}>
-              <input
-                type="text"
-                value={contactName}
-                onChange={handleContactNameChange}
-                placeholder="Your name"
+            <h3 style={{ marginTop: 0, fontSize: "16px", color: getTextColor(theme, "primary") }}>Contact</h3>
+            <p style={{ color: getTextColor(theme, "secondary"), fontSize: "14px", marginTop: "8px", lineHeight: 1.6 }}>
+              If you have any concerns or questions, please email us at{" "}
+              <a 
+                href="mailto:jkadakiabusiness@gmail.com" 
                 style={{ 
-                  ...getInputStyle(theme), 
-                  marginTop: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  width: "80%",
-                  maxWidth: "300px",
+                  color: theme === "dark" ? "#8ea4ff" : "#4f46e5",
+                  textDecoration: "none",
+                  fontWeight: 500
                 }}
-              />
-              <input
-                type="email"
-                value={contactEmail}
-                onChange={handleContactEmailChange}
-                placeholder="Your email"
-                style={{ 
-                  ...getInputStyle(theme), 
-                  marginTop: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  width: "80%",
-                  maxWidth: "300px",
-                }}
-              />
-              <textarea
-                value={contactMessage}
-                onChange={handleContactMessageChange}
-                placeholder="Your message..."
-                rows={3}
-                style={{
-                  ...getInputStyle(theme),
-                  marginTop: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  resize: "vertical",
-                  minHeight: "70px",
-                  width: "80%",
-                  maxWidth: "300px",
-                }}
-              />
-              <button
-                onClick={async () => {
-                  if (!contactName || !contactEmail || !contactMessage) {
-                    setContactError("Please fill in all fields.");
-                    return;
-                  }
-                  
-                  try {
-                    setLoading(true);
-                    setContactError("");
-                    setContactMessageSuccess("");
-                    
-                    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-                    const response = await fetch(`${API_BASE_URL}/api/contact`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        name: contactName,
-                        email: contactEmail,
-                        message: contactMessage,
-                      }),
-                    });
-                    
-                    // Parse response - handle both JSON and text
-                    // Read response as text first (can only read once)
-                    const responseText = await response.text();
-                    console.log('Raw server response:', responseText);
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-                    
-                    let data;
-                    try {
-                      data = responseText ? JSON.parse(responseText) : {};
-                    } catch (parseError) {
-                      console.error('Failed to parse JSON response:', parseError);
-                      console.error('Response text:', responseText);
-                      throw new Error(`Server returned invalid JSON: ${response.status}. Response: ${responseText.substring(0, 200)}`);
-                    }
-                    
-                    console.log('Parsed contact form response:', data);
-                    
-                    if (!response.ok) {
-                      // Try multiple possible error message fields
-                      const errorMsg = data?.error || data?.message || data?.errorMessage || data?.details || 
-                                     (typeof data === 'string' ? data : `Server error: ${response.status}`);
-                      console.error('Server error response:', errorMsg);
-                      console.error('Full error data:', JSON.stringify(data, null, 2));
-                      throw new Error(errorMsg);
-                    }
-                    
-                    if (data.success) {
-                      setContactMessageSuccess("Thank you for contacting us! We'll get back to you soon.");
-                      // Clear inputs immediately
-                      setContactName("");
-                      setContactEmail("");
-                      setContactMessage("");
-                      setTimeout(() => setContactMessageSuccess(""), 5000);
-                    } else {
-                      setContactError(data.error || "Failed to send message. Please try again.");
-                    }
-                  } catch (err) {
-                    console.error('Error sending contact form:', err);
-                    // Only show "fill all fields" error in contact card, other errors go to console only
-                    if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
-                      // Don't show server connection errors in contact card
-                      console.error("Cannot connect to server. Please make sure the server is running on port 3001.");
-                    } else {
-                      // Don't show other errors in contact card
-                      console.error(`Failed to send message: ${err.message}`);
-                    }
-                    // Don't clear inputs on error - let user retry
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-                style={buttonStyle(loading)}
               >
-                {loading ? "Sending..." : "Send Message"}
-              </button>
-              {contactError && (
-                <p style={{ 
-                  color: theme === "dark" ? "#ff8a8a" : "#dc2626", 
-                  marginTop: "12px", 
-                  fontSize: "13px",
-                  textAlign: "center"
-                }}>
-                  {contactError}
-                </p>
-              )}
-              {contactMessageSuccess && (
-                <p style={{ 
-                  color: theme === "dark" ? "#7af5c3" : "#059669", 
-                  marginTop: "12px", 
-                  fontSize: "13px",
-                  textAlign: "center"
-                }}>
-                  {contactMessageSuccess}
-                </p>
-              )}
-            </div>
+                jkadakiabusiness@gmail.com
+              </a>
+            </p>
           </div>
           <div>
             <h3 style={{ marginTop: 0, fontSize: "16px", color: getTextColor(theme, "primary") }}>Terms & Conditions</h3>

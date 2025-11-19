@@ -5,26 +5,26 @@ export const PROFILES_KEY = "zodiacCipherProfiles"; // Store all profiles
 
 /**
  * Get storage key for a specific account
- * @param {string} accountId - Email for signed-in users, "guest" for guests
+ * @param {string} accountId - Email for signed-in users
  * @returns {string} Storage key
  */
 const getAccountKey = (accountId) => `${STORAGE_KEY_PREFIX}${accountId}`;
 
 /**
- * Get account ID from profile or return "guest"
+ * Get account ID from profile
  * @param {Object|null} profile - User profile
- * @returns {string} Account ID
+ * @returns {string|null} Account ID or null if no profile
  */
 export const getAccountId = (profile) => {
-  return profile?.email || "guest";
+  return profile?.email || null;
 };
 
 /**
  * Get user data for a specific account
- * @param {string} accountId - Account ID (email or "guest")
+ * @param {string} accountId - Account ID (email)
  * @returns {Object} User data
  */
-export const getUserData = (accountId = "guest") => {
+export const getUserData = (accountId) => {
   try {
     const key = getAccountKey(accountId);
     const data = localStorage.getItem(key);
@@ -38,7 +38,7 @@ export const getUserData = (accountId = "guest") => {
 
 /**
  * Save user data for a specific account
- * @param {string} accountId - Account ID (email or "guest")
+ * @param {string} accountId - Account ID (email)
  * @param {Object} data - User data to save
  */
 export const saveUserData = (accountId, data) => {
@@ -71,17 +71,6 @@ export const getAllUsersData = () => {
         });
       }
     });
-    
-    // Also include guest if they have points
-    const guestData = getUserData("guest");
-    if (guestData.points > 0) {
-      allUsers.push({
-        email: "guest",
-        name: "Guest",
-        points: guestData.points,
-        streak: guestData.streak,
-      });
-    }
     
     // Sort by points descending
     return allUsers.sort((a, b) => b.points - a.points);
@@ -145,4 +134,118 @@ export const getAllProfiles = () => {
 export const getProfileByEmail = (email) => {
   const profiles = getAllProfiles();
   return profiles.find((p) => p.email === email) || null;
+};
+
+/**
+ * Likes storage key
+ */
+const LIKES_KEY = "zodiacCipherLikes";
+
+/**
+ * Get all likes data
+ * @returns {Object} Object mapping entryId to array of user emails who liked it
+ */
+export const getAllLikes = () => {
+  try {
+    const data = localStorage.getItem(LIKES_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+};
+
+/**
+ * Save likes data
+ * @param {Object} likes - Object mapping entryId to array of user emails
+ */
+export const saveLikes = (likes) => {
+  try {
+    localStorage.setItem(LIKES_KEY, JSON.stringify(likes));
+  } catch (err) {
+    console.error("Failed to save likes:", err);
+  }
+};
+
+/**
+ * Toggle like for an entry
+ * @param {string} entryId - Unique entry ID (email_date format)
+ * @param {string} userEmail - Email of user liking/unliking
+ * @returns {Object} Updated likes data
+ */
+export const toggleLike = (entryId, userEmail) => {
+  const likes = getAllLikes();
+  if (!likes[entryId]) {
+    likes[entryId] = [];
+  }
+  
+  const index = likes[entryId].indexOf(userEmail);
+  if (index > -1) {
+    // Unlike
+    likes[entryId].splice(index, 1);
+  } else {
+    // Like
+    likes[entryId].push(userEmail);
+  }
+  
+  saveLikes(likes);
+  return likes;
+};
+
+/**
+ * Check if user has liked an entry
+ * @param {string} entryId - Unique entry ID
+ * @param {string} userEmail - User email
+ * @returns {boolean} True if user has liked the entry
+ */
+export const hasUserLiked = (entryId, userEmail) => {
+  const likes = getAllLikes();
+  return likes[entryId]?.includes(userEmail) || false;
+};
+
+/**
+ * Get like count for an entry
+ * @param {string} entryId - Unique entry ID
+ * @returns {number} Number of likes
+ */
+export const getLikeCount = (entryId) => {
+  const likes = getAllLikes();
+  return likes[entryId]?.length || 0;
+};
+
+/**
+ * Get all public journal entries from all users
+ * @returns {Array} Array of entries with user info
+ */
+export const getAllPublicEntries = () => {
+  try {
+    const profiles = getAllProfiles();
+    const allEntries = [];
+    
+    profiles.forEach((profile) => {
+      const userData = getUserData(profile.email);
+      const username = profile.username || profile.email.split("@")[0];
+      
+      // Get entries with images (public entries)
+      userData.pastDeeds?.forEach((deed) => {
+        if (deed.image) {
+          allEntries.push({
+            entryId: `${profile.email}_${deed.date}`,
+            email: profile.email,
+            username: username,
+            deed: deed.deed,
+            date: deed.date,
+            image: deed.image,
+            solvePoints: deed.solvePoints || 0,
+            uploadPoints: deed.uploadPoints || 0,
+            totalPoints: deed.totalPoints || 0,
+            streak: deed.streak || 0,
+          });
+        }
+      });
+    });
+    
+    return allEntries;
+  } catch {
+    return [];
+  }
 };

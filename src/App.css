@@ -36,3 +36,17 @@ select:focus option:checked {
   background: #272a33;
   color: #f7f8fb;
 }
+
+/* Light theme select options */
+body:has([data-theme="light"]) select option,
+[data-theme="light"] select option {
+  background: #ffffff;
+  color: #1a202c;
+  padding: 8px;
+}
+
+body:has([data-theme="light"]) select:focus option:checked,
+[data-theme="light"] select:focus option:checked {
+  background: #edf2f7;
+  color: #1a202c;
+}

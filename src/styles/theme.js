@@ -153,6 +153,4 @@ export const footerStyle = {
   boxSizing: "border-box",
 };
 
-// API endpoint configuration
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 

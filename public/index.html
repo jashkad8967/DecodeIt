@@ -9,10 +9,16 @@
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0QJKZ25R95"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
+    gtag('config', 'G-0QJKZ25R95');
+  </script>
   <!-- Auto Ads script (do not touch) -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5158994576624872"
     crossorigin="anonymous"></script>
@@ -91,11 +97,11 @@
     window.addEventListener('load', function () {
       // Render left ad
       const left = document.querySelector('#left-ad .adsbygoogle');
-      if (left) (adsbygoogle = window.adsbygoogle || []).push({});
+      if (left) (window.adsbygoogle = window.adsbygoogle || []).push({});
 
       // Render right ad
       const right = document.querySelector('#right-ad .adsbygoogle');
-      if (right) (adsbygoogle = window.adsbygoogle || []).push({});
+      if (right) (window.adsbygoogle = window.adsbygoogle || []).push({});
 
     });
   </script>
