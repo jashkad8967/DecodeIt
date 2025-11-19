@@ -1,14 +1,14 @@
 // App.jsx
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getUserData, saveUserData, getProfile, getAccountId, getAllUsersData, getAllPublicEntries, toggleLike, hasUserLiked, getLikeCount } from "./utils/storage";
-import { getTodayDate, isSameDay, buildBirthdayISO } from "./utils/dateHelpers";
+import { getTodayDate, isSameDay, buildBirthdayISO, parseBirthdayISO, formatBirthdayDisplay } from "./utils/dateHelpers";
 import { encodeSentence } from "./utils/cipher";
 import { pollinationsFetch, extractZodiac, normalizeSentence, isConcise } from "./utils/ai";
 import { processImageFile } from "./utils/imageHelpers";
 import { signOut, signIn, register, deleteAccount, updateProfile, resetPassword } from "./utils/authHelpers";
 import { calculateStreak, calculateSolvePoints, calculateUploadPoints, hasCompletedToday, createDeed } from "./utils/deedHelpers";
 import { MAX_SENTENCE_WORDS, zodiacInsights } from "./constants/zodiac";
-import { CARD_MAX_WIDTH, FRAME_WIDTH, SAFE_PADDING } from "./constants/config";
+import { CARD_MAX_WIDTH, FRAME_WIDTH, SAFE_PADDING, MOBILE_BREAKPOINT, MOBILE_PADDING } from "./constants/config";
 import { useAdOffsets } from "./hooks/useAdOffsets";
 import { monthOptions, useYearOptions, useDayOptions } from "./utils/dateOptions";
 import { CardFrame } from "./components/CardFrame";
@@ -52,6 +52,7 @@ function App() {
   const accountId = useMemo(() => getAccountId(profile), [profile]);
   const [userData, setUserData] = useState(() => getUserData(getAccountId(profile)));
   const [deedCompleted, setDeedCompleted] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false); // Track if just completed in this session
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -74,12 +75,8 @@ function App() {
   const [settingsBirthdayParts, setSettingsBirthdayParts] = useState(() => {
     const savedProfile = getProfile();
     if (savedProfile?.birthday) {
-      const date = new Date(savedProfile.birthday);
-      return {
-        month: String(date.getMonth() + 1).padStart(2, '0'),
-        day: String(date.getDate()).padStart(2, '0'),
-        year: String(date.getFullYear()),
-      };
+      // Parse directly from string to avoid timezone issues
+      return parseBirthdayISO(savedProfile.birthday);
     }
     return { month: "", day: "", year: "" };
   });
@@ -203,6 +200,7 @@ function App() {
     setMessage(""); // Clear any completion messages
     setError(""); // Clear any error messages
     setDeedCompleted(false);
+    setJustCompleted(false); // Reset just completed flag
     setShowImageUpload(false);
     setImagePreview(null);
     setImageFile(null);
@@ -232,14 +230,9 @@ function App() {
       // Update theme and username from profile
       setTheme(signedInProfile.theme || "dark");
       setUsername(signedInProfile.username || signedInProfile.email.split("@")[0]);
-      // Update settings birthday parts
+      // Update settings birthday parts (parse directly to avoid timezone issues)
       if (signedInProfile.birthday) {
-        const date = new Date(signedInProfile.birthday);
-        setSettingsBirthdayParts({
-          month: String(date.getMonth() + 1).padStart(2, '0'),
-          day: String(date.getDate()).padStart(2, '0'),
-          year: String(date.getFullYear()),
-        });
+        setSettingsBirthdayParts(parseBirthdayISO(signedInProfile.birthday));
       } else {
         setSettingsBirthdayParts({ month: "", day: "", year: "" });
       }
@@ -368,6 +361,10 @@ function App() {
     if (step !== 2 || view !== "home" || !isSignedIn) {
       hasRestoredPendingDeed.current = false;
     }
+    // Reset justCompleted when navigating away from home or reloading
+    if (view !== "home" || step !== 2) {
+      setJustCompleted(false);
+    }
   }, [profile, step, view, isSignedIn, loading]);
 
   useEffect(() => {
@@ -389,16 +386,18 @@ function App() {
     const currentUserData = getUserData(currentAccountId);
     if (isSameDay(currentUserData.lastDeedDate, today) && currentUserData.pastDeeds.some(d => d.date === today)) {
       setDeedCompleted(true);
-      if (step === 2) {
+      // Only show "already done" message if NOT just completed in this session
+      if (step === 2 && !justCompleted) {
         setMessage("✅ You've already completed today's good deed! Come back tomorrow.");
       }
     } else {
       setDeedCompleted(false);
+      setJustCompleted(false); // Reset when deed is not completed
       if (step === 2 && message.includes("already completed")) {
         setMessage("");
       }
     }
-  }, [profile, step, isSignedIn, message, error]);
+  }, [profile, step, isSignedIn, message, error, justCompleted]);
 
   const handleProfileSubmit = () => {
     try {
@@ -446,6 +445,8 @@ function App() {
       const updatedProfile = updateProfile(profile.email, { birthday: isoBirthday });
       setProfile(updatedProfile);
       setBirthday(isoBirthday);
+      // Update settings birthday parts to reflect the saved value (parse directly to avoid timezone issues)
+      setSettingsBirthdayParts(parseBirthdayISO(isoBirthday));
       setEditingBirthday(false);
       setError("");
       setMessage("Birthday updated successfully!");
@@ -513,6 +514,7 @@ function App() {
       setView(resetState.view);
       setMessage("");
       setDeedCompleted(false);
+      setJustCompleted(false); // Reset just completed flag
       setUsername("");
       setTheme("dark");
       setUserData({ points: 0, streak: 0, lastDeedDate: null, pastDeeds: [] });
@@ -584,6 +586,7 @@ function App() {
     setUserData(updatedData);
     saveUserData(currentAccountId, updatedData);
     setDeedCompleted(true);
+    setJustCompleted(true); // Mark as just completed in this session
     
     // Set pending deed so user can upload photo and get more points
     setPendingDeed({
@@ -692,6 +695,7 @@ function App() {
     }
 
     setDeedCompleted(true);
+    setJustCompleted(true); // Mark as just completed in this session
     setShowImageUpload(false);
     setImagePreview(null);
     setImageFile(null);
@@ -706,49 +710,71 @@ function App() {
     }
   };
 
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const availableWidth = useMemo(
-    () => (typeof window !== "undefined" ? window.innerWidth - SAFE_PADDING * 2 : FRAME_WIDTH),
-    []
+    () => {
+      if (typeof window === "undefined") return FRAME_WIDTH;
+      const padding = isMobile ? MOBILE_PADDING * 2 : SAFE_PADDING * 2;
+      return window.innerWidth - padding;
+    },
+    [isMobile]
   );
 
   const pageStyle = useMemo(
-    () => ({
-      minHeight: "100vh",
-      margin: 0,
-      fontFamily: "'Space Grotesk', Arial, sans-serif",
-      color: theme === "dark" ? "#f7f8fb" : "#1a202c",
-      background: theme === "dark" 
-        ? "#1f2128" 
-        : "linear-gradient(135deg, #f7fafc 0%, #edf2f7 50%, #e2e8f0 100%)",
-      paddingTop: 120 + adOffsets.top,
-      paddingBottom: 160 + adOffsets.bottom,
-      paddingLeft: SAFE_PADDING,
-      paddingRight: SAFE_PADDING,
-      boxSizing: "border-box",
-      position: "relative",
-      overflow: "hidden",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "flex-start",
-      transition: "background 0.3s ease, color 0.3s ease",
-    }),
-    [adOffsets.top, adOffsets.bottom, theme]
+    () => {
+      const padding = isMobile ? MOBILE_PADDING : SAFE_PADDING;
+      return {
+        minHeight: "100vh",
+        margin: 0,
+        fontFamily: "'Space Grotesk', Arial, sans-serif",
+        color: theme === "dark" ? "#f7f8fb" : "#1a202c",
+        background: theme === "dark" 
+          ? "#1f2128" 
+          : "linear-gradient(135deg, #f7fafc 0%, #edf2f7 50%, #e2e8f0 100%)",
+        paddingTop: isMobile ? Math.max(80, 60 + adOffsets.top) : 120 + adOffsets.top,
+        paddingBottom: isMobile ? 100 + adOffsets.bottom : 160 + adOffsets.bottom,
+        paddingLeft: padding,
+        paddingRight: padding,
+        boxSizing: "border-box",
+        position: "relative",
+        overflowX: "hidden",
+        overflowY: "auto",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        transition: "background 0.3s ease, color 0.3s ease",
+        width: "100%",
+      };
+    },
+    [adOffsets.top, adOffsets.bottom, theme, isMobile]
   );
 
   const shellStyle = useMemo(
     () => ({
       width: "100%",
-      maxWidth: Math.min(FRAME_WIDTH, Math.max(360, availableWidth)),
-      minWidth: "320px",
+      maxWidth: isMobile ? "100%" : Math.min(FRAME_WIDTH, Math.max(360, availableWidth)),
+      minWidth: "0",
       margin: "0 auto",
       display: "flex",
       flexDirection: "column",
-      gap: "32px",
+      gap: isMobile ? "20px" : "32px",
       alignItems: "stretch",
       padding: 0,
       boxSizing: "border-box",
     }),
-    [availableWidth]
+    [availableWidth, isMobile]
   );
 
   const highlightTileStyle = useMemo(() => ({
@@ -937,7 +963,7 @@ function App() {
                 <p style={{ fontSize: "16px", color: textColor, marginBottom: "16px", fontWeight: 600 }}>
                   📸 Upload a photo to earn {calculateUploadPoints(pendingDeed.streak)} more points!
                 </p>
-                <input
+        <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
@@ -983,14 +1009,14 @@ function App() {
                   </div>
                 )}
                 {imagePreview && (
-                  <button
+        <button
                     onClick={handleImageSubmit}
                     style={{ ...buttonStyle(false), width: "100%" }}
-                  >
+        >
                     Complete Good Deed (+{calculateUploadPoints(pendingDeed.streak)} pts)
-                  </button>
+        </button>
                 )}
-              </div>
+      </div>
             )}
           </>
         ) : isSignedIn && step === 1 ? (
@@ -1579,12 +1605,8 @@ function App() {
                           setEditingBirthday(false);
                           const savedProfile = getProfile();
                           if (savedProfile?.birthday) {
-                            const date = new Date(savedProfile.birthday);
-                            setSettingsBirthdayParts({
-                              month: String(date.getMonth() + 1).padStart(2, '0'),
-                              day: String(date.getDate()).padStart(2, '0'),
-                              year: String(date.getFullYear()),
-                            });
+                            // Parse directly to avoid timezone issues
+                            setSettingsBirthdayParts(parseBirthdayISO(savedProfile.birthday));
                           } else {
                             setSettingsBirthdayParts({ month: "", day: "", year: "" });
                           }
@@ -1606,10 +1628,17 @@ function App() {
                 ) : (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <p style={{ margin: 0, fontSize: "16px", color: textColor }}>
-                      {profile?.birthday ? new Date(profile.birthday).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Not set"}
+                      {profile?.birthday ? formatBirthdayDisplay(profile.birthday) : "Not set"}
                     </p>
                     <button
-                      onClick={() => setEditingBirthday(true)}
+                      onClick={() => {
+                        // Refresh birthday parts from current profile when starting to edit
+                        const currentProfile = getProfile();
+                        if (currentProfile?.birthday) {
+                          setSettingsBirthdayParts(parseBirthdayISO(currentProfile.birthday));
+                        }
+                        setEditingBirthday(true);
+                      }}
                       style={{ 
                         ...buttonStyle(false), 
                         marginTop: 0, 
@@ -2048,7 +2077,7 @@ function App() {
         />
       ))}
       <div style={shellStyle}>
-        <header style={topBarStyle(adOffsets, theme)}>
+        <header style={topBarStyle(adOffsets, theme, isMobile)}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{ width: 42, height: 42, borderRadius: "12px", background: "linear-gradient(135deg, #ff6bc5, #7076ff)" }} />
             <div>
@@ -2256,7 +2285,7 @@ function App() {
           {view === "home" ? renderExperience() : view === "journal" ? renderJournal() : view === "community" ? renderCommunity() : view === "settings" ? renderSettings() : renderAbout()}
         </main>
 
-        <footer style={{ ...footerStyle, background: theme === "dark" ? "#272a33" : "linear-gradient(135deg, #ffffff 0%, #f7fafc 100%)", border: theme === "dark" ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0" }}>
+        <footer style={{ ...footerStyle(isMobile), background: theme === "dark" ? "#272a33" : "linear-gradient(135deg, #ffffff 0%, #f7fafc 100%)", border: theme === "dark" ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0" }}>
           <div>
             <h3 style={{ marginTop: 0, fontSize: "16px", color: getTextColor(theme, "primary") }}>Contact</h3>
             <p style={{ color: getTextColor(theme, "secondary"), fontSize: "14px", marginTop: "8px", lineHeight: 1.6 }}>

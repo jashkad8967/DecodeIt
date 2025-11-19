@@ -76,32 +76,32 @@ export const dateGridStyle = {
   marginTop: "12px",
 };
 
-export const gradientFrameStyle = {
+export const gradientFrameStyle = (isMobile = false) => ({
   width: "100%",
-  maxWidth: 760,
+  maxWidth: isMobile ? "100%" : 760,
   margin: "0 auto",
   padding: "1.5px",
-  borderRadius: "36px",
+  borderRadius: isMobile ? "20px" : "36px",
   background: "linear-gradient(135deg, rgba(101,130,255,0.6), rgba(255,106,179,0.4))",
   boxShadow: "0 35px 90px rgba(0,0,0,0.55)",
-};
+});
 
-export const cardWrapperStyle = {
+export const cardWrapperStyle = (isMobile = false) => ({
   width: "100%",
   display: "flex",
   justifyContent: "center",
-  padding: "0 12px",
+  padding: isMobile ? "0 4px" : "0 12px",
   boxSizing: "border-box",
-};
+});
 
-export const topBarStyle = (adOffsets, theme = "dark") => ({
+export const topBarStyle = (adOffsets, theme = "dark", isMobile = false) => ({
   position: "sticky",
   top: Math.max(adOffsets.top + 16, 16),
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "18px 26px",
-  borderRadius: "24px",
+  padding: isMobile ? "12px 16px" : "18px 26px",
+  borderRadius: isMobile ? "16px" : "24px",
   background: theme === "light" 
     ? "linear-gradient(135deg, #ffffff 0%, #f7fafc 100%)" 
     : "rgba(4, 6, 18, 0.8)",
@@ -114,8 +114,10 @@ export const topBarStyle = (adOffsets, theme = "dark") => ({
     ? "0 20px 60px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)" 
     : "0 20px 60px rgba(0,0,0,0.45)",
   width: "100%",
-  maxWidth: 760,
+  maxWidth: isMobile ? "100%" : 760,
   alignSelf: "center",
+  flexWrap: "wrap",
+  gap: isMobile ? "8px" : "12px",
 });
 
 export const navButtonStyle = (active, theme = "dark") => ({
@@ -136,21 +138,21 @@ export const navButtonStyle = (active, theme = "dark") => ({
   transition: "all 0.2s ease",
 });
 
-export const footerStyle = {
+export const footerStyle = (isMobile = false) => ({
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: "24px",
-  padding: "32px",
-  borderRadius: "28px",
+  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))",
+  gap: isMobile ? "24px" : "32px",
+  padding: isMobile ? "24px 16px" : "32px",
+  borderRadius: isMobile ? "16px" : "28px",
   background: "#272a33",
   border: "1px solid rgba(255,255,255,0.05)",
   backdropFilter: "blur(14px)",
   boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
   width: "100%",
-  maxWidth: 760,
+  maxWidth: isMobile ? "100%" : 760,
   margin: "0 auto",
   alignSelf: "center",
   boxSizing: "border-box",
-};
+});
 
 

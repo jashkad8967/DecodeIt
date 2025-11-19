@@ -60,27 +60,26 @@ export const getAllUsersData = () => {
     const profiles = getAllProfiles();
     const usernameMap = new Map(); // Track usernames to prevent duplicates
     
-    // Get data for all registered users
+    // Get data for all registered users (show all users, not just those with points > 0)
     profiles.forEach((profile) => {
       const userData = getUserData(profile.email);
-      if (userData.points > 0) {
-        const username = profile.username || profile.email.split("@")[0];
-        const userEntry = {
-          email: profile.email,
-          name: username,
-          points: userData.points,
-          streak: userData.streak,
-        };
-        
-        // If username already exists, keep the one with higher points
-        if (usernameMap.has(username.toLowerCase())) {
-          const existing = usernameMap.get(username.toLowerCase());
-          if (userEntry.points > existing.points) {
-            usernameMap.set(username.toLowerCase(), userEntry);
-          }
-        } else {
+      // Include all users regardless of points
+      const username = profile.username || profile.email.split("@")[0];
+      const userEntry = {
+        email: profile.email,
+        name: username,
+        points: userData.points || 0,
+        streak: userData.streak || 0,
+      };
+      
+      // If username already exists, keep the one with higher points
+      if (usernameMap.has(username.toLowerCase())) {
+        const existing = usernameMap.get(username.toLowerCase());
+        if (userEntry.points > existing.points) {
           usernameMap.set(username.toLowerCase(), userEntry);
         }
+      } else {
+        usernameMap.set(username.toLowerCase(), userEntry);
       }
     });
     

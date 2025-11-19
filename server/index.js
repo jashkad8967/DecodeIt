@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 const path = require('path');
 
 // Load .env file from server directory
@@ -31,6 +32,37 @@ console.log('=====================================\n');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/decode-puzzle';
+
+mongoose.connect(MONGODB_URI)
+.then(() => {
+  console.log('✅ Connected to MongoDB');
+})
+.catch((error) => {
+  console.error('❌ MongoDB connection error:', error);
+  console.error('⚠️  Server will continue but database operations will fail.');
+});
+
+// Routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
+const dataRoutes = require('./routes/data');
+const likesRoutes = require('./routes/likes');
+
+// Health check endpoint (before other routes)
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/data', dataRoutes);
+app.use('/api/likes', likesRoutes);
 
 // Log environment status (without sensitive data)
 console.log('Server starting...');
@@ -203,10 +235,6 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
 
 // Debug endpoint to check email configuration (remove in production)
 // Note: This must be after emailPass is defined

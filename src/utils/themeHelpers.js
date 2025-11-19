@@ -58,10 +58,10 @@ export const getInputStyle = (theme) => {
  * @param {string} theme - Current theme ("dark" or "light")
  * @returns {Object} Style object
  */
-export const getCardStyle = (theme) => {
+export const getCardStyle = (theme, isMobile = false) => {
   return {
     width: "100%",
-    maxWidth: 640,
+    maxWidth: isMobile ? "100%" : 640,
     margin: "0 auto",
     background: theme === "light" 
       ? "linear-gradient(135deg, #ffffff 0%, #f7fafc 50%, #edf2f7 100%)" 
@@ -69,8 +69,8 @@ export const getCardStyle = (theme) => {
     border: theme === "light" 
       ? "1px solid #e2e8f0" 
       : "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "32px",
-    padding: "48px 48px 56px",
+    borderRadius: isMobile ? "20px" : "32px",
+    padding: isMobile ? "24px 20px 32px" : "48px 48px 56px",
     boxShadow: theme === "light" 
       ? "0 20px 60px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)" 
       : "0 30px 80px rgba(0,0,0,0.55)",
@@ -78,6 +78,7 @@ export const getCardStyle = (theme) => {
     backdropFilter: "blur(18px)",
     position: "relative",
     zIndex: 2,
+    boxSizing: "border-box",
   };
 };
 

@@ -3,6 +3,13 @@ body {
   font-family: "Space Grotesk", Arial, sans-serif;
   background-color: #1f2128;
   color: #f7f8fb;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 button {
