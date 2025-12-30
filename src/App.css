@@ -1,59 +1,1778 @@
-body {
-  margin: 0;
-  font-family: "Space Grotesk", Arial, sans-serif;
-  background-color: #1f2128;
-  color: #f7f8fb;
-  overflow-x: hidden;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
-button {
-  cursor: pointer;
-  transition: transform 0.2s ease;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #e8f0fe 0%, #d6e9ff 100%);
+  min-height: 100vh;
+  transition: background 0.3s ease;
+  position: relative;
+  overflow-x: hidden;
 }
 
-button:hover {
-  transform: translateY(-1px);
+/* Starry background for both themes */
+.star-background {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: repeat;
+  background-size: 2000px 2000px;
+  animation: twinkle 20s infinite;
 }
 
 @keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.star-bg-light {
+  background-image: 
+    /* Large stars */
+    radial-gradient(2px 2px at 15px 25px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 45px 65px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 75px 15px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 105px 85px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 135px 35px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 165px 75px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 195px 55px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 225px 25px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 255px 95px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 285px 45px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 315px 15px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 345px 75px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 375px 35px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 405px 85px, #1a1a2e, transparent),
+    radial-gradient(2px 2px at 435px 55px, #1a1a2e, transparent),
+    /* Medium stars */
+    radial-gradient(1.5px 1.5px at 30px 50px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 60px 10px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 90px 70px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 120px 30px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 150px 90px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 180px 50px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 210px 10px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 240px 70px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 270px 30px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 300px 90px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 330px 50px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 360px 10px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 390px 70px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 420px 30px, #2d3561, transparent),
+    radial-gradient(1.5px 1.5px at 450px 90px, #2d3561, transparent),
+    /* Small stars - many more */
+    radial-gradient(1px 1px at 5px 20px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 25px 40px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 35px 60px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 55px 80px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 65px 5px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 85px 25px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 95px 45px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 115px 65px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 125px 85px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 145px 15px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 155px 35px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 175px 55px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 185px 75px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 205px 95px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 215px 5px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 235px 25px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 245px 45px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 265px 65px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 275px 85px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 295px 15px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 305px 35px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 325px 55px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 335px 75px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 355px 95px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 365px 5px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 385px 25px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 395px 45px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 415px 65px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 425px 85px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 445px 15px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 455px 35px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 475px 55px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 485px 75px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 505px 95px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 515px 5px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 535px 25px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 545px 45px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 565px 65px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 575px 85px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 595px 15px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 605px 35px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 625px 55px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 635px 75px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 655px 95px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 665px 5px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 685px 25px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 695px 45px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 715px 65px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 725px 85px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 745px 15px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 755px 35px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 775px 55px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 785px 75px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 805px 95px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 815px 5px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 835px 25px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 845px 45px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 865px 65px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 875px 85px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 895px 15px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 905px 35px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 925px 55px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 935px 75px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 955px 95px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 965px 5px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 985px 25px, #3d2a54, transparent),
+    radial-gradient(1px 1px at 995px 45px, #3d2a54, transparent);
+  opacity: 0.4;
+}
+
+.star-bg-dark {
+  background-image: 
+    /* Large stars */
+    radial-gradient(2px 2px at 15px 25px, #fff, transparent),
+    radial-gradient(2px 2px at 45px 65px, #fff, transparent),
+    radial-gradient(2px 2px at 75px 15px, #fff, transparent),
+    radial-gradient(2px 2px at 105px 85px, #fff, transparent),
+    radial-gradient(2px 2px at 135px 35px, #fff, transparent),
+    radial-gradient(2px 2px at 165px 75px, #fff, transparent),
+    radial-gradient(2px 2px at 195px 55px, #fff, transparent),
+    radial-gradient(2px 2px at 225px 25px, #fff, transparent),
+    radial-gradient(2px 2px at 255px 95px, #fff, transparent),
+    radial-gradient(2px 2px at 285px 45px, #fff, transparent),
+    radial-gradient(2px 2px at 315px 15px, #fff, transparent),
+    radial-gradient(2px 2px at 345px 75px, #fff, transparent),
+    radial-gradient(2px 2px at 375px 35px, #fff, transparent),
+    radial-gradient(2px 2px at 405px 85px, #fff, transparent),
+    radial-gradient(2px 2px at 435px 55px, #fff, transparent),
+    /* Medium stars */
+    radial-gradient(1.5px 1.5px at 30px 50px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 60px 10px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 90px 70px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 120px 30px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 150px 90px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 180px 50px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 210px 10px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 240px 70px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 270px 30px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 300px 90px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 330px 50px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 360px 10px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 390px 70px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 420px 30px, #e0e0e0, transparent),
+    radial-gradient(1.5px 1.5px at 450px 90px, #e0e0e0, transparent),
+    /* Small stars - many more */
+    radial-gradient(1px 1px at 5px 20px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 25px 40px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 35px 60px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 55px 80px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 65px 5px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 85px 25px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 95px 45px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 115px 65px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 125px 85px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 145px 15px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 155px 35px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 175px 55px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 185px 75px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 205px 95px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 215px 5px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 235px 25px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 245px 45px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 265px 65px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 275px 85px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 295px 15px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 305px 35px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 325px 55px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 335px 75px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 355px 95px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 365px 5px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 385px 25px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 395px 45px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 415px 65px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 425px 85px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 445px 15px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 455px 35px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 475px 55px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 485px 75px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 505px 95px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 515px 5px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 535px 25px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 545px 45px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 565px 65px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 575px 85px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 595px 15px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 605px 35px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 625px 55px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 635px 75px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 655px 95px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 665px 5px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 685px 25px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 695px 45px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 715px 65px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 725px 85px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 745px 15px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 755px 35px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 775px 55px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 785px 75px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 805px 95px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 815px 5px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 835px 25px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 845px 45px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 865px 65px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 875px 85px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 895px 15px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 905px 35px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 925px 55px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 935px 75px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 955px 95px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 965px 5px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 985px 25px, #b0b0b0, transparent),
+    radial-gradient(1px 1px at 995px 45px, #b0b0b0, transparent);
+  opacity: 0.5;
+}
+
+/* Make sign out button full width and more clickable */
+.sign-out-button.full-width {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  color: #212529;
+  cursor: pointer;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.sign-out-button.full-width:hover {
+  background: #e0e7ef;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+}
+.sign-out-button .user-email {
+  font-size: 14px;
+  color: #6c757d;
+  margin-right: 12px;
+}
+.sign-out-button .sign-out-label {
+  color: #764ba2;
+  font-weight: 700;
+}
+.app-container.dark-theme .sign-out-button.full-width {
+  background: #23233a;
+  border-color: #3a3a4e;
+  color: #e0e0e0;
+}
+.app-container.dark-theme .sign-out-button.full-width:hover {
+  background: #1e1e2e;
+}
+.app-container.dark-theme .sign-out-button .user-email {
+  color: #b0b0b0;
+}
+.app-container.dark-theme .sign-out-button .sign-out-label {
+  color: #a78bfa;
+}
+
+/* Dark theme body background */
+.app-container.dark-theme body {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.app-container.dark-theme {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.app-container.dark-theme body {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.app-container.dark-theme .stat-value {
+  color: #818cf8;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column; /* FIX: vertical layout */
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  background: linear-gradient(135deg, #e8f0fe 0%, #d6e9ff 100%);
+}
+
+.app-container:not(.dark-theme) {
+  background: linear-gradient(135deg, #e8f0fe 0%, #d6e9ff 100%);
+}
+
+.loading {
+  color: white;
+  font-size: 18px;
+  text-align: center;
+}
+
+/* Settings Bar */
+
+/* Top bar for settings and stats */
+
+/* User stats bar with top bar buttons */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  box-sizing: border-box;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.top-bar .user-stats {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  margin-right: auto;
+}
+
+.top-bar-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.top-bar-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5a67d8;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.view-stats-button {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  color: white;
+  border: none;
+}
+
+.view-stats-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(90, 103, 216, 0.4);
+}
+
+.top-bar-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  border: 2px solid rgba(90, 103, 216, 0.2);
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(90, 103, 216, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(90, 103, 216, 0.2);
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #5a67d8;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.top-bar .logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #5a67d8;
+}
+
+.top-bar .theme-toggle {
+  background: none;
+  border: none;
+  color: #5a67d8;
+  cursor: pointer;
+  font-size: 18px;
+  position: relative;
+  z-index: 1003;
+}
+
+.settings-toggle {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 0;
+}
+
+.settings-toggle:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: rotate(90deg) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+.settings-menu {
+  position: fixed;
+  top: 56px;
+  right: 32px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.3s ease;
+  border: 2px solid #e9ecef;
+  z-index: 2002;
+  pointer-events: auto;
+  overflow: visible;
+}
+
+.settings-menu * {
+  pointer-events: auto !important;
+  position: relative;
+}
+
+.settings-menu button {
+  pointer-events: auto !important;
+  z-index: 1003 !important;
+}
+
+@keyframes slideDown {
   from {
-    opacity: 0.25;
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-item {
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.settings-item:last-child {
+  margin-bottom: 0;
+}
+
+.settings-divider {
+  height: 1px;
+  background: #e9ecef;
+  margin: 12px 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  pointer-events: auto;
+}
+
+.user-info * {
+  pointer-events: auto;
+}
+
+.user-info span {
+  color: #6c757d;
+  font-size: 12px;
+  word-break: break-all;
+  pointer-events: none;
+}
+
+.sign-out-button,
+.auth-button {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 1002 !important;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin-top: 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sign-out-button:hover,
+.auth-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.settings-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #212529;
+  user-select: none;
+}
+
+.settings-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #5a67d8;
+}
+
+.settings-label span {
+  flex: 1;
+}
+
+.game-wrapper {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin-top: 24px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.game-header {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  color: white;
+  padding: 40px 32px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  margin-top: 80px;
+  border-radius: 12px 12px 0 0;
+}
+
+.game-title {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-subtitle {
+  font-size: 16px;
+  opacity: 0.95;
+  font-weight: 500;
+}
+
+.game-content {
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.main-game-area {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 40px;
+  justify-content: center;
+  width: 100%;
+  padding: 40px 0;
+  margin-bottom: 0;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 200px;
+  flex-shrink: 0;
+}
+
+/* Bottle Swap Game Styles */
+.bottles-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  min-height: 140px;
+  flex: 1;
+}
+
+.bottle-slot {
+  position: relative;
+  width: 80px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottle-placeholder {
+  position: absolute;
+  width: 80px;
+  height: 120px;
+  border: 3px dashed #dee2e6;
+  background: rgba(248, 249, 250, 0.5);
+  transition: all 0.2s ease;
+  z-index: 1;
+  pointer-events: none;
+  clip-path: polygon(
+    35% 0%,
+    65% 0%,
+    70% 12%,
+    85% 12%,
+    90% 18%,
+    92% 85%,
+    88% 95%,
+    12% 95%,
+    8% 85%,
+    10% 18%,
+    15% 12%,
+    30% 12%
+  );
+}
+
+.bottle-slot.drag-over .bottle-placeholder {
+  border-color: #5a67d8;
+  background: rgba(90, 103, 216, 0.1);
+  border-style: solid;
+}
+
+.bottle {
+  width: 80px;
+  height: 120px;
+  cursor: grab;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+.bottle:active {
+  cursor: grabbing;
+}
+
+.bottle:hover:not(.dragging) {
+  transform: translateY(-5px);
+}
+
+.bottle.dragging {
+  opacity: 0.5;
+  transform: scale(0.9);
+  z-index: 100;
+}
+
+.bottle-shape {
+  width: 100%;
+  height: 100%;
+  background: var(--bottle-color);
+  /* Classic bottle shape: narrow neck, wider body */
+  clip-path: polygon(
+    35% 0%,      /* Top left of neck */
+    65% 0%,      /* Top right of neck */
+    70% 12%,     /* Neck widens */
+    85% 12%,     /* Shoulder starts */
+    90% 18%,     /* Shoulder */
+    92% 85%,     /* Body bottom right */
+    88% 95%,     /* Base curve right */
+    12% 95%,     /* Base curve left */
+    8% 85%,      /* Body bottom left */
+    10% 18%,     /* Shoulder */
+    15% 12%,     /* Shoulder starts */
+    30% 12%      /* Neck widens */
+  );
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  border: 3px solid transparent;
+}
+
+.bottle.selected .bottle-shape {
+  border-color: #5a67d8;
+  box-shadow: 0 8px 20px rgba(90, 103, 216, 0.4);
+}
+
+.bottle-emoji {
+  font-size: 48px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.check-button {
+  width: 100%;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.check-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.check-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.check-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback-display {
+  text-align: center;
+  animation: fadeInScale 0.5s ease;
+  width: 100%;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.feedback-number {
+  font-size: 32px;
+  font-weight: 800;
+  color: #212529;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  display: inline-block;
+  min-width: 200px;
+}
+
+.guesses-counter {
+  text-align: center;
+  font-size: 16px;
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 100%;
+}
+
+.puzzle-card {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.puzzle-prompt {
+  font-size: 24px;
+  font-weight: 600;
+  color: #212529;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.puzzle-description {
+  font-size: 16px;
+  color: #6c757d;
+  line-height: 1.6;
+}
+
+.puzzle-description small {
+  font-size: 14px;
+  color: #868e96;
+}
+
+/* Clues Section */
+.clues-section {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.clues-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.clues-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #212529;
+  margin: 0;
+}
+
+.stage-indicator {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.clues-stage {
+  margin-bottom: 20px;
+}
+
+.clues-stage:last-child {
+  margin-bottom: 0;
+}
+
+.stage-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5a67d8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.clue-item {
+  background: white;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #495057;
+  border-left: 3px solid #5a67d8;
+  line-height: 1.5;
+}
+
+.clue-item.probabilistic {
+  border-left-color: #ffc107;
+  background: #fffbf0;
+  font-style: italic;
+}
+
+.clues-stage.probabilistic .stage-label {
+  color: #ffc107;
+}
+
+.question-card {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.question-text {
+  font-size: 24px;
+  font-weight: 600;
+  color: #212529;
+  line-height: 1.5;
+}
+
+.guess-form {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  align-items: stretch;
+}
+
+.guess-input {
+  flex: 1;
+  padding: 16px 20px;
+  font-size: 18px;
+  border: 2px solid #dee2e6;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.guess-input:focus {
+  border-color: #5a67d8;
+  box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+}
+
+.guess-input::placeholder {
+  color: #adb5bd;
+}
+
+.guess-button {
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.guess-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.guess-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.guess-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback {
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.feedback-detail {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.feedback-win {
+  background: #d4edda;
+  color: #155724;
+  border: 2px solid #c3e6cb;
+}
+
+.feedback-lose {
+  background: #f8d7da;
+  color: #721c24;
+  border: 2px solid #f5c6cb;
+}
+
+.feedback-far {
+  background: #fff3cd;
+  color: #856404;
+  border: 2px solid #ffeaa7;
+}
+
+.attempts-counter {
+  text-align: center;
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.guesses-history {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 2px solid #e9ecef;
+}
+
+.guesses-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.guess-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.guess-bottles {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.guess-bottle-emoji {
+  font-size: 24px;
+}
+
+.guess-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: #5a67d8;
+  min-width: 60px;
+  text-align: right;
+}
+
+.target-order {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.target-bottle {
+  font-size: 32px;
+}
+
+.guess-item.guess-win {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.guess-item.guess-lose {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.guess-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.guess-feedback-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.guess-win .guess-feedback-text {
+  color: #155724;
+}
+
+.guess-lose .guess-feedback-text {
+  color: #721c24;
+}
+
+.game-over {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 2px solid #e9ecef;
+}
+
+.game-result {
+  text-align: center;
+  padding: 32px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  animation: scaleIn 0.4s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
     transform: scale(0.9);
   }
   to {
-    opacity: 0.85;
-    transform: scale(1.1);
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-/* Style select dropdown options for visibility */
-select option {
-  background: #1a1c24;
-  color: #f7f8fb;
-  padding: 8px;
+.result-win {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border: 2px solid #c3e6cb;
 }
 
-select:focus option:checked {
-  background: #272a33;
-  color: #f7f8fb;
+.result-lose {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  border: 2px solid #f5c6cb;
 }
 
-/* Light theme select options */
-body:has([data-theme="light"]) select option,
-[data-theme="light"] select option {
-  background: #ffffff;
-  color: #1a202c;
-  padding: 8px;
+.result-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
 }
 
-body:has([data-theme="light"]) select:focus option:checked,
-[data-theme="light"] select:focus option:checked {
-  background: #edf2f7;
-  color: #1a202c;
+.result-text {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: #212529;
+}
+
+.result-subtext {
+  font-size: 18px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.result-subtext strong {
+  color: #212529;
+  font-weight: 700;
+}
+
+.restart-button {
+  width: 100%;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.restart-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.restart-button:active {
+  transform: translateY(0);
+}
+
+.game-footer {
+  background: #f8f9fa;
+  padding: 24px 32px;
+  text-align: center;
+  border-top: 2px solid #e9ecef;
+}
+
+.game-footer p {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.save-prompt {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.save-link {
+  background: none;
+  border: none;
+  color: #5a67d8;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 13px;
+}
+
+.save-link:hover {
+  color: #6b46c1;
+}
+
+.save-notice {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #28a745;
+  font-weight: 600;
+}
+
+/* Dark Theme Styles */
+.app-container.dark-theme .game-wrapper {
+  background: #1e1e2e;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.app-container.dark-theme .top-bar {
+  background: rgba(30, 30, 46, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-container.dark-theme .top-bar-btn {
+  background: rgba(42, 42, 62, 0.9);
+  border-color: rgba(138, 158, 255, 0.3);
+  color: #8a9eff;
+}
+
+.app-container.dark-theme .view-stats-button {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  color: white;
+}
+
+.app-container.dark-theme .view-stats-button:hover {
+  box-shadow: 0 4px 12px rgba(138, 158, 255, 0.4);
+}
+
+.app-container.dark-theme .top-bar-btn:hover {
+  background: rgba(50, 50, 70, 1);
+  border-color: rgba(138, 158, 255, 0.5);
+}
+
+.app-container.dark-theme .stat-item {
+  background: rgba(42, 42, 62, 0.8);
+  border-color: rgba(138, 158, 255, 0.2);
+}
+
+.app-container.dark-theme .stat-item:hover {
+  background: rgba(50, 50, 70, 1);
+  border-color: rgba(138, 158, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(138, 158, 255, 0.2);
+}
+
+.app-container.dark-theme .stat-value {
+  color: #8a9eff;
+}
+
+.app-container.dark-theme .stat-label {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .game-header {
+  background: linear-gradient(135deg, #2d3561 0%, #3d2a54 100%);
+}
+
+.app-container.dark-theme .bottle-placeholder {
+  border-color: #3a3a4e;
+  background: rgba(30, 30, 46, 0.5);
+}
+
+.app-container.dark-theme .bottle-slot.drag-over .bottle-placeholder {
+  border-color: #8a9eff;
+  background: rgba(138, 158, 255, 0.2);
+}
+
+.app-container.dark-theme .bottle-shape {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.app-container.dark-theme .feedback-number {
+  background: #2a2a3e;
+  border-color: #3a3a4e;
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .guesses-counter {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .guess-item {
+  background: #2a2a3e;
+  border: 1px solid #3a3a4e;
+}
+
+.app-container.dark-theme .guess-count {
+  color: #8a9eff;
+}
+
+.app-container.dark-theme .puzzle-card {
+  background: #2a2a3e;
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .puzzle-prompt {
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .puzzle-description {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .puzzle-description small {
+  color: #888;
+}
+
+.app-container.dark-theme .clues-section {
+  background: #2a2a3e;
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .clues-header h3 {
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .clues-header {
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .stage-label {
+  color: #8a9eff;
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .clue-item {
+  background: #1e1e2e;
+  color: #d0d0d0;
+  border-left-color: #8a9eff;
+}
+
+.app-container.dark-theme .clue-item.probabilistic {
+  background: #2a241e;
+  border-left-color: #ffd54f;
+}
+
+.app-container.dark-theme .question-card {
+  background: #2a2a3e;
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .question-text {
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .guess-input {
+  background: #2a2a3e;
+  border-color: #3a3a4e;
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .guess-input::placeholder {
+  color: #888;
+}
+
+.app-container.dark-theme .attempts-counter {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .guesses-title {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .guess-item {
+  background: #2a2a3e;
+  border: 1px solid #3a3a4e;
+}
+
+.app-container.dark-theme .guess-number {
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .guess-feedback-text {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .game-footer {
+  background: #2a2a3e;
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .game-footer p {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .settings-toggle {
+  background: rgba(30, 30, 46, 0.9);
+  border-color: rgba(102, 126, 234, 0.5);
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .settings-menu {
+  background: #2a2a3e;
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .settings-label {
+  color: #e0e0e0;
+}
+
+/* High Contrast Mode */
+.app-container.high-contrast .game-wrapper {
+  border: 4px solid #000;
+}
+
+.app-container.high-contrast .bottle-shape {
+  border: 3px solid #000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.app-container.high-contrast .bottle.selected .bottle-shape {
+  border: 4px solid #000;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.app-container.high-contrast .feedback-number {
+  border: 3px solid #000;
+  background: #fff;
+  color: #000;
+  font-weight: 900;
+}
+
+.app-container.high-contrast .check-button {
+  border: 3px solid #000;
+  background: #000;
+  color: #fff;
+  font-weight: 800;
+}
+
+.app-container.high-contrast .guess-item {
+  border: 2px solid #000;
+  background: #fff;
+}
+
+.app-container.high-contrast .guess-count {
+  color: #000;
+  font-weight: 900;
+}
+
+.app-container.high-contrast .puzzle-card {
+  border: 3px solid #000;
+  background: #fff;
+}
+
+.app-container.high-contrast .puzzle-prompt {
+  color: #000;
+  font-weight: 700;
+}
+
+.app-container.high-contrast .clues-section {
+  border: 3px solid #000;
+  background: #fff;
+}
+
+.app-container.high-contrast .clue-item {
+  border: 2px solid #000;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+}
+
+.app-container.high-contrast .stage-label {
+  color: #000;
+  font-weight: 800;
+  border-color: #000;
+}
+
+.app-container.high-contrast .question-card {
+  border: 3px solid #000;
+  background: #fff;
+}
+
+.app-container.high-contrast .question-text {
+  color: #000;
+  font-weight: 700;
+}
+
+.app-container.high-contrast .guess-input {
+  border: 3px solid #000;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+}
+
+.app-container.high-contrast .guess-button {
+  border: 3px solid #000;
+  background: #000;
+  color: #fff;
+}
+
+.app-container.high-contrast .feedback-win {
+  background: #00ff00;
+  color: #000;
+  border: 3px solid #000;
+  font-weight: 700;
+}
+
+.app-container.high-contrast .feedback-lose {
+  background: #ff0000;
+  color: #fff;
+  border: 3px solid #000;
+  font-weight: 700;
+}
+
+.app-container.high-contrast .feedback-far {
+  background: #ffff00;
+  color: #000;
+  border: 3px solid #000;
+  font-weight: 700;
+}
+
+.app-container.high-contrast .guess-item {
+  border: 2px solid #000;
+}
+
+.app-container.high-contrast .guess-item.guess-win {
+  background: #00ff00;
+  border: 3px solid #000;
+}
+
+.app-container.high-contrast .guess-item.guess-lose {
+  background: #ff0000;
+  border: 3px solid #000;
+}
+
+.app-container.high-contrast .guess-number {
+  color: #000;
+  font-weight: 800;
+}
+
+.app-container.high-contrast .result-win {
+  background: #00ff00;
+  border: 4px solid #000;
+}
+
+.app-container.high-contrast .result-lose {
+  background: #ff0000;
+  border: 4px solid #000;
+}
+
+.app-container.high-contrast .result-text {
+  color: #000;
+  font-weight: 900;
+}
+
+.app-container.high-contrast .restart-button {
+  border: 3px solid #000;
+  background: #000;
+  color: #fff;
+  font-weight: 700;
+}
+
+.app-container.high-contrast.dark-theme .game-wrapper {
+  background: #000;
+  border: 4px solid #fff;
+}
+
+.app-container.high-contrast.dark-theme .question-card {
+  background: #000;
+  border: 3px solid #fff;
+}
+
+.app-container.high-contrast.dark-theme .question-text {
+  color: #fff;
+}
+
+.app-container.high-contrast.dark-theme .guess-input {
+  background: #000;
+  border: 3px solid #fff;
+  color: #fff;
+}
+
+.app-container.high-contrast.dark-theme .settings-menu {
+  background: #000;
+  border: 3px solid #fff;
+}
+
+.app-container.high-contrast.dark-theme .settings-label {
+  color: #fff;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 900px) {
+  .main-game-area {
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .bottles-container {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .side-panel {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-bar {
+    top: 10px;
+    right: 10px;
+  }
+
+  .settings-toggle {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .settings-menu {
+    top: 52px;
+    right: 0;
+    min-width: 180px;
+    padding: 12px;
+  }
+
+  .game-header {
+    padding: 32px 24px;
+  }
+
+  .game-title {
+    font-size: 36px;
+  }
+
+  .game-subtitle {
+    font-size: 14px;
+  }
+
+  .game-content {
+    padding: 32px 24px;
+  }
+
+  .bottles-container {
+    gap: 12px;
+  }
+
+  .bottle {
+    width: 60px;
+    height: 90px;
+  }
+
+  .bottle-emoji {
+    font-size: 36px;
+  }
+
+  .check-button {
+    font-size: 18px;
+    padding: 14px 24px;
+  }
+
+  .feedback-number {
+    font-size: 24px;
+    padding: 16px;
+  }
+
+  .guess-bottle-emoji {
+    font-size: 20px;
+  }
+
+  .target-bottle {
+    font-size: 24px;
+  }
+
+  .question-text {
+    font-size: 20px;
+  }
+
+  .guess-form {
+    flex-direction: column;
+  }
+
+  .guess-button {
+    width: 100%;
+  }
+
+  .result-icon {
+    font-size: 48px;
+  }
+
+  .result-text {
+    font-size: 24px;
+  }
+
+  .result-subtext {
+    font-size: 16px;
+  }
 }
