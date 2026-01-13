@@ -1,0 +1,169 @@
+.help-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+.help-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  border: 3px solid var(--blue-900);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .help-modal {
+  border: 3px solid var(--highlight);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.help-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  color: var(--accent-primary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.help-modal-close:hover {
+  background: var(--background-hover);
+  color: var(--accent-hover);
+}
+
+.help-modal h2 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: var(--highlight);
+  text-align: center;
+}
+
+.help-modal p {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  color: var(--text-secondary);
+}
+
+.help-modal ul {
+  padding-left: 20px;
+  margin-bottom: 24px;
+}
+
+.help-modal li {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.help-modal-close-button {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.help-modal-close-button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-hover);
+}
+
+/* Dark theme */
+.app-container.dark-theme .help-modal {
+  background: #2a2a3e;
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .help-modal h2 {
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .help-card {
+  background: #1e1e2e;
+  border-color: #3a3a4e;
+}
+
+.app-container.dark-theme .help-card-value {
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .help-card-label {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .help-modal-close {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .help-modal-close:hover {
+  background: #1e1e2e;
+  color: #e0e0e0;
+}
+
+.app-container.dark-theme .help-modal-close-button {
+  color: #b0b0b0;
+}
+
+.app-container.dark-theme .help-modal-close-button:hover {
+  background: #1e1e2e;
+  color: #e0e0e0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .help-modal {
+    padding: 24px;
+    max-width: 90%;
+  }
+
+  .help-modal h2 {
+    font-size: 24px;
+  }
+
+  .help-modal p {
+    font-size: 15px;
+  }
+}
